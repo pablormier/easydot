@@ -8,9 +8,10 @@ import json
 import sys
 import uuid
 
+from easydot._version import UPSTREAM_PACKAGE, UPSTREAM_VERSION
 from easydot._server import asset_urls
 
-DEFAULT_CDN_URL = "https://cdn.jsdelivr.net/npm/@hpcc-js/wasm-graphviz@1.21.0/dist/index.min.js"
+DEFAULT_CDN_URL = f"https://cdn.jsdelivr.net/npm/{UPSTREAM_PACKAGE}@{UPSTREAM_VERSION}/dist/index.min.js"
 
 
 def _b64_text(value: str) -> str:

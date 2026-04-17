@@ -1,0 +1,54 @@
+name: Update vendored Graphviz WASM
+
+on:
+  schedule:
+    - cron: "0 9 * * 1"  # every Monday at 09:00 UTC
+  workflow_dispatch: {}   # allow manual trigger
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Check for new upstream version
+        id: check
+        run: |
+          CURRENT="$(grep 'UPSTREAM_VERSION' src/easydot/_version.py | head -1 | sed 's/.*"\(.*\)".*/\1/')"
+          LATEST="$(npm view @hpcc-js/wasm-graphviz version)"
+          echo "current=$CURRENT" >> "$GITHUB_OUTPUT"
+          echo "latest=$LATEST" >> "$GITHUB_OUTPUT"
+          if [ "$CURRENT" = "$LATEST" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Update vendored assets
+        if: steps.check.outputs.skip == 'false'
+        run: ./scripts/update_vendor.sh "${{ steps.check.outputs.latest }}"
+
+      - name: Create pull request
+        if: steps.check.outputs.skip == 'false'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: vendor/wasm-graphviz-${{ steps.check.outputs.latest }}
+          commit-message: "Update vendored @hpcc-js/wasm-graphviz to ${{ steps.check.outputs.latest }}"
+          title: "Update vendored @hpcc-js/wasm-graphviz to ${{ steps.check.outputs.latest }}"
+          body: |
+            Automated update of the vendored Graphviz WASM module.
+
+            - **Previous version:** ${{ steps.check.outputs.current }}
+            - **New version:** ${{ steps.check.outputs.latest }}
+            - **Upstream:** [npm](https://www.npmjs.com/package/@hpcc-js/wasm-graphviz)
+
+            Please review the asset diff, run tests, and merge when ready.
+          labels: dependencies
