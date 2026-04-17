@@ -1,6 +1,6 @@
 {
   "name": "@hpcc-js/wasm-graphviz",
-  "version": "1.21.0",
+  "version": "1.21.2",
   "description": "hpcc-js - WASM Graphviz",
   "type": "module",
   "exports": {
@@ -35,8 +35,9 @@
     "update": "npx -y npm-check-updates -u -t minor",
     "update-major": "npx -y npm-check-updates -u"
   },
+  "dependencies": {},
   "devDependencies": {
-    "@hpcc-js/esbuild-plugins": "1.8.2",
+    "@hpcc-js/esbuild-plugins": "1.8.4",
     "@hpcc-js/wasm-util": "1.0.0"
   },
   "keywords": [
@@ -55,5 +56,5 @@
   },
   "homepage": "https://hpcc-systems.github.io/hpcc-js-wasm/",
   "license": "Apache-2.0",
-  "gitHead": "bb13918d64628a39a587fec110734d5f95bc3443"
+  "gitHead": "97a943e7ee94834838b2f70c31f4932d96908657"
 }
