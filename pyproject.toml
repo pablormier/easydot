@@ -1,0 +1,30 @@
+[project]
+name = "easydot"
+version = "0.1.0"
+description = "Tiny browser-side Graphviz DOT rendering helpers for notebooks and web views"
+authors = [
+    { name = "Pablo Rodriguez Mier", email = "pablo.rodriguez.mier@gmail.com" }
+]
+requires-python = ">=3.10"
+dependencies = []
+readme = "README.md"
+license = "BSD-3-Clause"
+license-files = [
+    "LICENSE",
+    "src/easydot/assets/LICENSE.hpcc-js-wasm",
+]
+keywords = ["dot", "graphviz", "notebook", "wasm"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: Scientific/Engineering :: Visualization",
+]
+
+[project.scripts]
+easydot = "easydot._cli:main"
+
+[build-system]
+requires = ["uv_build>=0.11.7,<0.12.0"]
+build-backend = "uv_build"
