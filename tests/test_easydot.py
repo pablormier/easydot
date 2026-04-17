@@ -61,7 +61,26 @@ def test_display_exposes_rich_reprs():
     mime, payload = obj._mime_()
     assert mime == "text/html"
     assert payload
+    assert obj._repr_mimebundle_() == {mime: payload}
     assert repr(obj) == "digraph { A -> B }"
+
+
+def test_display_publishes_html_in_ipython(monkeypatch):
+    published = []
+    ipython_module = ModuleType("IPython")
+    display_module = ModuleType("IPython.display")
+    display_module.display_html = lambda html, raw=False: published.append((html, raw))
+
+    monkeypatch.setitem(sys.modules, "IPython", ipython_module)
+    monkeypatch.setitem(sys.modules, "IPython.display", display_module)
+
+    easydot.display("digraph { A -> B }")._ipython_display_()
+
+    assert len(published) == 1
+    html, raw = published[0]
+    assert raw is True
+    assert "<iframe" in html
+    assert "digraph { A -> B }" not in html
 
 
 def test_display_mime_uses_marimo_iframe(monkeypatch):

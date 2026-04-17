@@ -155,6 +155,22 @@ class DotDisplay:
             return "text/html", self._iframe_html()
         return "text/html", self._body_html()
 
+    def _repr_mimebundle_(self, include=None, exclude=None) -> dict[str, str]:
+        """Return a Jupyter MIME bundle for frontends that prefer it."""
+
+        mime_type, payload = self._mime_()
+        return {mime_type: payload}
+
+    def _ipython_display_(self) -> None:
+        """Publish HTML directly when IPython's display hook is available."""
+
+        try:
+            from IPython.display import display_html
+
+            display_html(self._iframe_html(), raw=True)
+        except Exception:
+            return
+
     def _repr_html_(self) -> str:
         if "IPython" in sys.modules:
             return self._iframe_html()
