@@ -40,7 +40,7 @@ curl -sL "$TARBALL_URL" | tar xz -C "$TMPDIR"
 
 EXTRACTED="$TMPDIR/package"
 
-cp "$EXTRACTED/dist/index.min.js"  "$ASSETS_DIR/index.js"
+cp "$EXTRACTED/dist/index.js"      "$ASSETS_DIR/index.js"
 cp "$EXTRACTED/LICENSE"            "$ASSETS_DIR/LICENSE.hpcc-js-wasm"
 cp "$EXTRACTED/package.json"       "$ASSETS_DIR/package.json"
 cp "$EXTRACTED/README.md"          "$ASSETS_DIR/README.hpcc-js-wasm.md"
