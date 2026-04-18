@@ -30,6 +30,14 @@ Homepage = "https://github.com/pablormier/easydot"
 Repository = "https://github.com/pablormier/easydot"
 Issues = "https://github.com/pablormier/easydot/issues"
 
+[dependency-groups]
+dev = [
+    "pytest>=8.3,<9",
+]
+
+[tool.uv]
+default-groups = ["dev"]
+
 [build-system]
 requires = ["uv_build>=0.11.7,<0.12.0"]
 build-backend = "uv_build"

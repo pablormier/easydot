@@ -61,7 +61,9 @@ def test_display_exposes_rich_reprs():
     mime, payload = obj._mime_()
     assert mime == "text/html"
     assert payload
-    assert obj._repr_mimebundle_() == {mime: payload}
+    bundle = obj._repr_mimebundle_()
+    assert bundle.keys() == {mime}
+    assert "Graphviz.load" in bundle[mime]
     assert repr(obj) == "digraph { A -> B }"
 
 
