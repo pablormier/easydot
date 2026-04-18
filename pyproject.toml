@@ -33,6 +33,7 @@ Issues = "https://github.com/pablormier/easydot/issues"
 [dependency-groups]
 dev = [
     "pytest>=8.3,<9",
+    "marimo>=0.9",
 ]
 
 [tool.uv]

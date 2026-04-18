@@ -43,6 +43,8 @@ def html(
     format: str = "svg",
     container_id: str | None = None,
     source: str = "auto",
+    fit: bool = False,
+    scale: float = 1.0,
 ) -> str:
     """Return browser HTML that renders DOT with the bundled Graphviz WASM module."""
 
@@ -55,6 +57,8 @@ def html(
     safe_format = _b64_text(format)
     attr_id = html_lib.escape(container_id, quote=True)
     js_id = _js_literal(container_id)
+    js_fit = _js_literal(bool(fit))
+    js_scale = _js_literal(float(scale))
 
     return f"""
 <div id="{attr_id}" style="overflow:auto"></div>
@@ -102,6 +106,21 @@ def html(
     const graphviz = await Graphviz.load();
     const svg = await graphviz.layout(decode("{dot_b64}"), decode("{safe_format}"), decode("{safe_engine}"));
     target.innerHTML = svg;
+    const fit = {js_fit};
+    const scale = {js_scale};
+    const svgEl = target.querySelector("svg");
+    if (svgEl) {{
+      if (fit) {{
+        svgEl.removeAttribute("width");
+        svgEl.removeAttribute("height");
+        svgEl.style.maxWidth = "100%";
+        svgEl.style.height = "auto";
+      }}
+      if (scale !== 1) {{
+        svgEl.style.transform = `scale(${{scale}})`;
+        svgEl.style.transformOrigin = "top left";
+      }}
+    }}
     resizeFrameToContent();
     requestAnimationFrame(resizeFrameToContent);
     setTimeout(resizeFrameToContent, 50);
@@ -126,15 +145,26 @@ class DotDisplay:
         format: str = "svg",
         iframe_height: str = "220px",
         source: str = "auto",
+        fit: bool = False,
+        scale: float = 1.0,
     ) -> None:
         self.dot = dot
         self.engine = engine
         self.format = format
         self.iframe_height = iframe_height
         self.source = source
+        self.fit = fit
+        self.scale = scale
 
     def _body_html(self) -> str:
-        return html(self.dot, engine=self.engine, format=self.format, source=self.source)
+        return html(
+            self.dot,
+            engine=self.engine,
+            format=self.format,
+            source=self.source,
+            fit=self.fit,
+            scale=self.scale,
+        )
 
     def _iframe_html(self) -> str:
         escaped = html_lib.escape(self._body_html(), quote=True)
@@ -193,7 +223,17 @@ def display(
     format: str = "svg",
     iframe_height: str = "220px",
     source: str = "auto",
+    fit: bool = False,
+    scale: float = 1.0,
 ) -> DotDisplay:
     """Return a rich display object for a DOT graph."""
 
-    return DotDisplay(dot, engine=engine, format=format, iframe_height=iframe_height, source=source)
+    return DotDisplay(
+        dot,
+        engine=engine,
+        format=format,
+        iframe_height=iframe_height,
+        source=source,
+        fit=fit,
+        scale=scale,
+    )

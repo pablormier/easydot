@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import importlib.util
 import sys
 from types import ModuleType
 from urllib.request import urlopen
+
+import pytest
 
 import easydot
 from easydot._html import DEFAULT_CDN_URL
@@ -83,6 +86,40 @@ def test_display_publishes_html_in_ipython(monkeypatch):
     assert raw is True
     assert "<iframe" in html
     assert "digraph { A -> B }" not in html
+
+
+def test_html_defaults_omit_fit_and_scale():
+    rendered = easydot.html("digraph { A -> B }", source="cdn")
+
+    assert "const fit = false;" in rendered
+    assert "const scale = 1.0;" in rendered
+
+
+def test_html_fit_and_scale_flags_are_embedded():
+    rendered = easydot.html("digraph { A -> B }", source="cdn", fit=True, scale=1.5)
+
+    assert "const fit = true;" in rendered
+    assert "const scale = 1.5;" in rendered
+    assert 'svgEl.style.maxWidth = "100%"' in rendered
+    assert "svgEl.style.transform = `scale(${scale})`" in rendered
+
+
+@pytest.mark.skipif(
+    importlib.util.find_spec("marimo") is None,
+    reason="marimo not installed",
+)
+def test_display_mime_integrates_with_real_marimo():
+    mime, payload = easydot.display(
+        "digraph { A -> B }",
+        source="cdn",
+        fit=True,
+        scale=1.25,
+    )._mime_()
+
+    assert mime == "text/html"
+    assert "<iframe" in payload
+    assert "srcdoc" in payload
+    assert "Graphviz.load" in payload
 
 
 def test_display_mime_uses_marimo_iframe(monkeypatch):
