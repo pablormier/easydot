@@ -99,7 +99,7 @@ The asset server is intentionally narrow:
 
 The Python code is licensed under [BSD-3-Clause](LICENSE).
 
-The vendored browser module (`src/easydot/assets/index.js`) comes from [`@hpcc-js/wasm-graphviz@1.21.0`](https://www.npmjs.com/package/@hpcc-js/wasm-graphviz), licensed under Apache-2.0. The upstream license is included at `src/easydot/assets/LICENSE.hpcc-js-wasm`.
+The vendored browser module (`src/easydot/assets/index.js`) comes from [`@hpcc-js/wasm-graphviz`](https://www.npmjs.com/package/@hpcc-js/wasm-graphviz), licensed under Apache-2.0. The upstream license is included at `src/easydot/assets/LICENSE.hpcc-js-wasm`; the pinned version lives in `src/easydot/_version.py`.
 
 | Component | License |
 |---|---|

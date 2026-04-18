@@ -18,6 +18,10 @@ def _b64_text(value: str) -> str:
     return base64.b64encode(value.encode("utf-8")).decode("ascii")
 
 
+def _js_literal(value: object) -> str:
+    return json.dumps(value).replace("</", "<\\/")
+
+
 def _module_urls(source: str) -> list[str]:
     if source == "cdn":
         return [DEFAULT_CDN_URL]
@@ -28,7 +32,7 @@ def _module_urls(source: str) -> list[str]:
 
     try:
         return [asset_urls()["js"], DEFAULT_CDN_URL]
-    except Exception:
+    except OSError:
         return [DEFAULT_CDN_URL]
 
 
@@ -46,16 +50,17 @@ def html(
         container_id = f"easydot-{uuid.uuid4().hex}"
 
     dot_b64 = _b64_text(dot)
-    module_urls = json.dumps(_module_urls(source))
+    module_urls = _js_literal(_module_urls(source))
     safe_engine = _b64_text(engine)
     safe_format = _b64_text(format)
-    safe_id = html_lib.escape(container_id, quote=True)
+    attr_id = html_lib.escape(container_id, quote=True)
+    js_id = _js_literal(container_id)
 
     return f"""
-<div id="{safe_id}" style="overflow:auto"></div>
+<div id="{attr_id}" style="overflow:auto"></div>
 <script type="module">
 (async () => {{
-  const target = document.getElementById("{safe_id}");
+  const target = document.getElementById({js_id});
   if (!target) {{
     return;
   }}
@@ -138,7 +143,10 @@ class DotDisplay:
     def _mime_(self) -> tuple[str, str]:
         try:
             from marimo._output.formatting import iframe
+        except ImportError:
+            iframe = None
 
+        if iframe is not None:
             frame = iframe(self._body_html(), height=self.iframe_height)
             frame_mime = getattr(frame, "_mime_", None)
             if callable(frame_mime):
@@ -148,8 +156,6 @@ class DotDisplay:
             payload = getattr(frame, "html", None)
             if isinstance(payload, str):
                 return "text/html", payload
-        except Exception:
-            pass
 
         if "IPython" in sys.modules:
             return "text/html", self._iframe_html()
@@ -166,10 +172,10 @@ class DotDisplay:
 
         try:
             from IPython.display import display_html
-
-            display_html(self._iframe_html(), raw=True)
-        except Exception:
+        except ImportError:
             return
+
+        display_html(self._iframe_html(), raw=True)
 
     def _repr_html_(self) -> str:
         if "IPython" in sys.modules:
