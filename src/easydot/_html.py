@@ -86,24 +86,34 @@ def html(
   }};
   try {{
     const moduleUrls = {module_urls};
-    let mod = null;
-    let lastError = null;
-    for (const url of moduleUrls) {{
-      try {{
-        mod = await import(url);
-        break;
-      }} catch (error) {{
-        lastError = error;
+    const cache = (globalThis.__easydotGraphvizCache__ ||= new Map());
+    const loadGraphviz = async () => {{
+      let lastError = null;
+      for (const url of moduleUrls) {{
+        let pending = cache.get(url);
+        if (!pending) {{
+          pending = (async () => {{
+            const mod = await import(url);
+            const Graphviz = mod.Graphviz || (mod.default && mod.default.Graphviz) || mod.default;
+            if (!Graphviz || !Graphviz.load) {{
+              throw new Error("Graphviz WASM module does not expose Graphviz.load()");
+            }}
+            return Graphviz.load();
+          }})();
+          cache.set(url, pending);
+        }}
+        try {{
+          return await pending;
+        }} catch (error) {{
+          if (cache.get(url) === pending) {{
+            cache.delete(url);
+          }}
+          lastError = error;
+        }}
       }}
-    }}
-    if (!mod) {{
       throw lastError || new Error("Unable to load Graphviz WASM module");
-    }}
-    const Graphviz = mod.Graphviz || (mod.default && mod.default.Graphviz) || mod.default;
-    if (!Graphviz || !Graphviz.load) {{
-      throw new Error("Graphviz WASM module does not expose Graphviz.load()");
-    }}
-    const graphviz = await Graphviz.load();
+    }};
+    const graphviz = await loadGraphviz();
     const svg = await graphviz.layout(decode("{dot_b64}"), decode("{safe_format}"), decode("{safe_engine}"));
     target.innerHTML = svg;
     const fit = {js_fit};
@@ -147,6 +157,7 @@ class DotDisplay:
         source: str = "auto",
         fit: bool = False,
         scale: float = 1.0,
+        iframe: bool = True,
     ) -> None:
         self.dot = dot
         self.engine = engine
@@ -155,6 +166,7 @@ class DotDisplay:
         self.source = source
         self.fit = fit
         self.scale = scale
+        self.iframe = iframe
 
     def _body_html(self) -> str:
         return html(
@@ -171,6 +183,9 @@ class DotDisplay:
         return f"<iframe srcdoc='{escaped}' width='100%' height='{self.iframe_height}' frameborder='0'></iframe>"
 
     def _mime_(self) -> tuple[str, str]:
+        if not self.iframe:
+            return "text/html", self._body_html()
+
         try:
             from marimo._output.formatting import iframe
         except ImportError:
@@ -205,10 +220,11 @@ class DotDisplay:
         except ImportError:
             return
 
-        display_html(self._iframe_html(), raw=True)
+        payload = self._iframe_html() if self.iframe else self._body_html()
+        display_html(payload, raw=True)
 
     def _repr_html_(self) -> str:
-        if "IPython" in sys.modules:
+        if self.iframe and "IPython" in sys.modules:
             return self._iframe_html()
         return self._body_html()
 
@@ -225,6 +241,7 @@ def display(
     source: str = "auto",
     fit: bool = False,
     scale: float = 1.0,
+    iframe: bool = True,
 ) -> DotDisplay:
     """Return a rich display object for a DOT graph."""
 
@@ -236,4 +253,5 @@ def display(
         source=source,
         fit=fit,
         scale=scale,
+        iframe=iframe,
     )

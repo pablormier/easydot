@@ -50,6 +50,14 @@ def test_html_auto_includes_cdn_fallback_after_local_url():
     assert "for (const url of moduleUrls)" in rendered
 
 
+def test_html_shares_graphviz_instance_across_renders():
+    rendered = easydot.html("digraph { A -> B }", source="cdn")
+
+    assert "globalThis.__easydotGraphvizCache__" in rendered
+    assert "cache.get(url)" in rendered
+    assert "cache.delete(url)" in rendered
+
+
 def test_html_cdn_source_avoids_local_url():
     rendered = easydot.html("digraph { A -> B }", source="cdn")
 
@@ -120,6 +128,29 @@ def test_display_mime_integrates_with_real_marimo():
     assert "<iframe" in payload
     assert "srcdoc" in payload
     assert "Graphviz.load" in payload
+
+
+def test_display_iframe_false_skips_iframe_wrapping(monkeypatch):
+    _install_fake_marimo(monkeypatch, lambda *_args, **_kwargs: pytest.fail("marimo iframe should not be used"))
+    monkeypatch.setitem(sys.modules, "IPython", ModuleType("IPython"))
+
+    obj = easydot.display("digraph { A -> B }", source="cdn", iframe=False)
+
+    mime, payload = obj._mime_()
+    assert mime == "text/html"
+    assert "<iframe" not in payload
+    assert "Graphviz" in payload
+    assert "<iframe" not in obj._repr_html_()
+
+    published = []
+    display_module = ModuleType("IPython.display")
+    display_module.display_html = lambda html, raw=False: published.append((html, raw))
+    monkeypatch.setitem(sys.modules, "IPython.display", display_module)
+    obj._ipython_display_()
+
+    assert len(published) == 1
+    html, _raw = published[0]
+    assert "<iframe" not in html
 
 
 def test_display_mime_uses_marimo_iframe(monkeypatch):
