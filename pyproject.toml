@@ -1,6 +1,6 @@
 [project]
 name = "easydot"
-version = "0.1.1"
+version = "0.1.2"
 description = "Tiny browser-side Graphviz DOT rendering helpers for notebooks and web views"
 authors = [
     { name = "Pablo Rodriguez Mier", email = "pablo.rodriguez.mier@gmail.com" }
