@@ -14,6 +14,7 @@ from easydot._server import asset_urls
 
 DEFAULT_CDN_URL = f"https://cdn.jsdelivr.net/npm/{UPSTREAM_PACKAGE}@{UPSTREAM_VERSION}/dist/index.min.js"
 SOURCE_ENV_VAR = "EASYDOT_SOURCE"
+IFRAME_MODE_ENV_VAR = "EASYDOT_IFRAME_MODE"
 
 
 def _b64_text(value: str) -> str:
@@ -44,6 +45,13 @@ def _normalize_source(source: str) -> str:
     if source in ("auto", "local", "cdn"):
         return source
     raise ValueError(f"source must be 'auto', 'local', or 'cdn'; got {source!r}")
+
+
+def _iframe_mode() -> str:
+    mode = os.environ.get(IFRAME_MODE_ENV_VAR, "auto")
+    if mode in ("auto", "marimo", "srcdoc"):
+        return mode
+    raise ValueError(f"{IFRAME_MODE_ENV_VAR} must be 'auto', 'marimo', or 'srcdoc'; got {mode!r}")
 
 
 def _module_urls(source: str) -> list[str]:
@@ -371,6 +379,10 @@ class DotDisplay:
     def _mime_(self) -> tuple[str, str]:
         if not self.iframe:
             return "text/html", self._body_html()
+
+        mode = _iframe_mode()
+        if mode == "srcdoc":
+            return "text/html", self._iframe_html()
 
         try:
             from marimo._output.formatting import iframe

@@ -60,6 +60,18 @@ The environment variable accepts `auto`, `local`, or `cdn`. It only applies
 when `source="auto"` is used, so explicit `source="local"` and `source="cdn"`
 calls still win.
 
+Some hosted marimo environments protect marimo's generated iframe file URLs.
+If CDN mode still shows an authorization error, force a self-contained iframe:
+
+```python
+import os
+
+os.environ["EASYDOT_SOURCE"] = "cdn"
+os.environ["EASYDOT_IFRAME_MODE"] = "srcdoc"
+```
+
+`EASYDOT_IFRAME_MODE` accepts `auto`, `marimo`, or `srcdoc`.
+
 ## marimo Support
 
 `easydot` works with [marimo](https://marimo.io) out of the box. It detects marimo and uses its iframe display helper automatically, since marimo doesn't execute arbitrary inline scripts from plain `text/html` outputs. All source modes work.

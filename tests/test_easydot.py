@@ -243,6 +243,25 @@ def test_display_iframe_false_skips_iframe_wrapping(monkeypatch):
     assert "<iframe" not in html
 
 
+def test_display_srcdoc_iframe_mode_bypasses_marimo_iframe(monkeypatch):
+    _install_fake_marimo(monkeypatch, lambda *_args, **_kwargs: pytest.fail("marimo iframe should not be used"))
+    monkeypatch.setenv("EASYDOT_IFRAME_MODE", "srcdoc")
+
+    mime, payload = easydot.display("digraph { A -> B }", source="cdn")._mime_()
+
+    assert mime == "text/html"
+    assert "<iframe" in payload
+    assert "srcdoc=" in payload
+    assert DEFAULT_CDN_URL in payload
+
+
+def test_display_rejects_invalid_iframe_mode(monkeypatch):
+    monkeypatch.setenv("EASYDOT_IFRAME_MODE", "file")
+
+    with pytest.raises(ValueError, match="EASYDOT_IFRAME_MODE must be 'auto', 'marimo', or 'srcdoc'"):
+        easydot.display("digraph { A -> B }", source="cdn")._mime_()
+
+
 def test_display_mime_uses_marimo_iframe_without_default_height(monkeypatch):
     expected = '<iframe srcdoc="<p>ok</p>"></iframe>'
     iframe_calls = []

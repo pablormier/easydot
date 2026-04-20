@@ -38,6 +38,9 @@ ENV/
 # Jupyter / IPython
 .ipynb_checkpoints/
 
+# marimo generated session state
+examples/__marimo__/session/
+
 # Editors and OS files
 .DS_Store
 .idea/
