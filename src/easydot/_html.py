@@ -59,11 +59,12 @@ _CHECK_ICON = (
 def _toolbar_stylesheet(attr_id: str) -> str:
     return (
         f"#{attr_id} .easydot-toolbar{{"
-        "position:sticky;top:0;z-index:1;"
+        "position:sticky;top:0;left:0;z-index:1;"
         "display:flex;justify-content:flex-end;gap:2px;padding:3px 4px;"
         "background:rgba(255,255,255,0.78);backdrop-filter:blur(4px);"
         "-webkit-backdrop-filter:blur(4px);"
         "opacity:0.4;transition:opacity 150ms ease-in-out;"
+        "box-sizing:border-box;width:100%;"
         "}"
         f"#{attr_id}:hover .easydot-toolbar,"
         f"#{attr_id} .easydot-toolbar:focus-within{{opacity:1}}"
@@ -90,7 +91,7 @@ def html(
     source: str = "auto",
     fit: bool = False,
     scale: float = 1.0,
-    toolbar: bool = False,
+    toolbar: bool = True,
 ) -> str:
     """Return browser HTML that renders DOT with the bundled Graphviz WASM module."""
 
@@ -287,7 +288,7 @@ class DotDisplay:
         fit: bool = False,
         scale: float = 1.0,
         iframe: bool = True,
-        toolbar: bool = False,
+        toolbar: bool = True,
     ) -> None:
         self.dot = dot
         self.engine = engine
@@ -374,7 +375,7 @@ def display(
     fit: bool = False,
     scale: float = 1.0,
     iframe: bool = True,
-    toolbar: bool = False,
+    toolbar: bool = True,
 ) -> DotDisplay:
     """Return a rich display object for a DOT graph."""
 

@@ -121,16 +121,8 @@ def test_html_scale_without_fit_uses_pixel_sizing():
     assert "svgEl.style.transform" not in rendered
 
 
-def test_html_default_omits_toolbar():
+def test_html_default_includes_toolbar():
     rendered = easydot.html("digraph { A -> B }", source="cdn")
-
-    assert "data-easydot-toolbar" not in rendered
-    assert "data-easydot-copy" not in rendered
-    assert "data-easydot-download" not in rendered
-
-
-def test_html_toolbar_injects_download_and_copy_handlers():
-    rendered = easydot.html("digraph { A -> B }", source="cdn", toolbar=True)
 
     assert "data-easydot-toolbar" in rendered
     assert "data-easydot-copy" in rendered
@@ -140,11 +132,23 @@ def test_html_toolbar_injects_download_and_copy_handlers():
     assert "position:sticky" in rendered
 
 
-def test_display_propagates_toolbar_flag():
-    obj = easydot.display("digraph { A -> B }", source="cdn", toolbar=True)
+def test_html_toolbar_false_omits_toolbar():
+    rendered = easydot.html("digraph { A -> B }", source="cdn", toolbar=False)
 
-    assert obj.toolbar is True
-    assert "data-easydot-toolbar" in obj._body_html()
+    assert "data-easydot-toolbar" not in rendered
+    assert "data-easydot-copy" not in rendered
+    assert "data-easydot-download" not in rendered
+
+
+def test_display_propagates_toolbar_flag():
+    obj = easydot.display("digraph { A -> B }", source="cdn", toolbar=False)
+
+    assert obj.toolbar is False
+    assert "data-easydot-toolbar" not in obj._body_html()
+
+    default_obj = easydot.display("digraph { A -> B }", source="cdn")
+    assert default_obj.toolbar is True
+    assert "data-easydot-toolbar" in default_obj._body_html()
 
 
 @pytest.mark.skipif(
