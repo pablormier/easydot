@@ -8,6 +8,7 @@ from urllib.request import urlopen
 import pytest
 
 import easydot
+from easydot import _server
 from easydot._html import DEFAULT_CDN_URL
 
 
@@ -53,9 +54,24 @@ def test_html_auto_includes_cdn_fallback_after_local_url():
 def test_html_shares_graphviz_instance_across_renders():
     rendered = easydot.html("digraph { A -> B }", source="cdn")
 
-    assert "globalThis.__easydotGraphvizCache__" in rendered
+    assert "globalThis.__easydot__" in rendered
+    assert "graphvizCache" in rendered
     assert "cache.get(url)" in rendered
     assert "cache.delete(url)" in rendered
+
+
+def test_asset_server_registers_shutdown_once_after_restart(monkeypatch):
+    _server.shutdown_server()
+    register_calls = []
+    monkeypatch.setattr(_server, "_ATEXIT_REGISTERED", False)
+    monkeypatch.setattr(_server.atexit, "register", lambda fn: register_calls.append(fn))
+
+    _server.asset_base_url()
+    _server.shutdown_server()
+    _server.asset_base_url()
+    _server.shutdown_server()
+
+    assert register_calls == [_server.shutdown_server]
 
 
 def test_html_cdn_source_avoids_local_url():

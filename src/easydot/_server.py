@@ -24,6 +24,7 @@ _LOCK = threading.Lock()
 _SERVER: ThreadingHTTPServer | None = None
 _THREAD: threading.Thread | None = None
 _BASE_URL: str | None = None
+_ATEXIT_REGISTERED = False
 
 
 class _AssetHandler(BaseHTTPRequestHandler):
@@ -64,7 +65,7 @@ class _AssetHandler(BaseHTTPRequestHandler):
 def asset_base_url() -> str:
     """Start or reuse the local asset server and return its base URL."""
 
-    global _BASE_URL, _SERVER, _THREAD
+    global _ATEXIT_REGISTERED, _BASE_URL, _SERVER, _THREAD
 
     with _LOCK:
         if _BASE_URL is not None:
@@ -77,7 +78,9 @@ def asset_base_url() -> str:
         _SERVER = server
         _THREAD = thread
         _BASE_URL = f"http://127.0.0.1:{server.server_address[1]}"
-        atexit.register(shutdown_server)
+        if not _ATEXIT_REGISTERED:
+            atexit.register(shutdown_server)
+            _ATEXIT_REGISTERED = True
         return _BASE_URL
 
 

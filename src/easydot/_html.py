@@ -8,13 +8,17 @@ import json
 import os
 import sys
 import uuid
+from importlib.resources import files
 
+from easydot._icons import CHECK_ICON, COPY_ICON, DOWNLOAD_ICON
 from easydot._version import UPSTREAM_PACKAGE, UPSTREAM_VERSION
 from easydot._server import asset_urls
 
 DEFAULT_CDN_URL = f"https://cdn.jsdelivr.net/npm/{UPSTREAM_PACKAGE}@{UPSTREAM_VERSION}/dist/index.min.js"
 SOURCE_ENV_VAR = "EASYDOT_SOURCE"
 IFRAME_MODE_ENV_VAR = "EASYDOT_IFRAME_MODE"
+_ASSET_PACKAGE = "easydot.assets"
+_RENDER_TEMPLATE = files(_ASSET_PACKAGE).joinpath("render.js").read_text(encoding="utf-8")
 
 
 def _b64_text(value: str) -> str:
@@ -67,26 +71,6 @@ def _module_urls(source: str) -> list[str]:
         return [DEFAULT_CDN_URL]
 
 
-_COPY_ICON = (
-    '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" '
-    'stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
-    '<rect x="9" y="9" width="11" height="11" rx="2"/>'
-    '<path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>'
-)
-_DOWNLOAD_ICON = (
-    '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" '
-    'stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
-    '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>'
-    '<polyline points="7 10 12 15 17 10"/>'
-    '<line x1="12" y1="15" x2="12" y2="3"/></svg>'
-)
-_CHECK_ICON = (
-    '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" '
-    'stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
-    '<polyline points="20 6 9 17 4 12"/></svg>'
-)
-
-
 def _toolbar_stylesheet(attr_id: str) -> str:
     return (
         f"#{attr_id} .easydot-toolbar{{"
@@ -111,6 +95,15 @@ def _toolbar_stylesheet(attr_id: str) -> str:
         f"#{attr_id} .easydot-toolbar button.is-success{{color:#1a7f37}}"
         f"#{attr_id} .easydot-toolbar button.is-error{{color:#b00020}}"
     )
+
+
+def _render_script(replacements: dict[str, str]) -> str:
+    script = _RENDER_TEMPLATE
+    for key, value in replacements.items():
+        script = script.replace(f"__EASYDOT_{key}__", value)
+    if "__EASYDOT_" in script:
+        raise RuntimeError("render.js contains an unreplaced easydot template placeholder")
+    return script
 
 
 def html(
@@ -159,8 +152,8 @@ def html(
         toolbar_markup = (
             f"<style>{_toolbar_stylesheet(attr_id)}</style>"
             '<div class="easydot-toolbar" data-easydot-toolbar>'
-            f'<button type="button" data-easydot-copy aria-label="Copy SVG to clipboard" title="Copy SVG">{_COPY_ICON}</button>'
-            f'<button type="button" data-easydot-download aria-label="Download SVG" title="Download SVG">{_DOWNLOAD_ICON}</button>'
+            f'<button type="button" data-easydot-copy aria-label="Copy SVG to clipboard" title="Copy SVG">{COPY_ICON}</button>'
+            f'<button type="button" data-easydot-download aria-label="Download SVG" title="Download SVG">{DOWNLOAD_ICON}</button>'
             "</div>"
         )
         svg_install_js = (
@@ -173,7 +166,7 @@ def html(
       const format = {js_format};
       const mime = format === "svg" ? "image/svg+xml;charset=utf-8" : "text/plain;charset=utf-8";
       const filename = `graph.${{format}}`;
-      const checkIcon = {_js_literal(_CHECK_ICON)};
+      const checkIcon = {_js_literal(CHECK_ICON)};
       const flash = (btn, state) => {{
         const original = btn.dataset.originalIcon ||= btn.innerHTML;
         btn.classList.remove("is-success", "is-error");
@@ -219,117 +212,27 @@ def html(
       }}
     }}"""
 
+    script = _render_script(
+        {
+            "CONTAINER_ID": js_id,
+            "MODULE_URLS": module_urls,
+            "DOT_B64": dot_b64,
+            "FORMAT_B64": safe_format,
+            "ENGINE_B64": safe_engine,
+            "SVG_INSTALL_JS": svg_install_js,
+            "FIT": js_fit,
+            "SCALE": js_scale,
+            "SKIP_FRAME_RESIZE": js_skip_frame_resize,
+            "FIT_TOOLBAR_QUERY": fit_toolbar_query,
+            "TOOLBAR_SETUP_JS": toolbar_setup_js,
+        }
+    )
+
     return f"""
 <style>{body_style}</style>
 <div id="{attr_id}" style="{container_style}">{toolbar_markup}</div>
 <script type="module">
-(async () => {{
-  const target = document.getElementById({js_id});
-  if (!target) {{
-    return;
-  }}
-  const decode = (encoded) => {{
-    const binary = atob(encoded);
-    const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
-    return new TextDecoder("utf-8").decode(bytes);
-  }};
-  const resizeFrameToContent = () => {{
-    try {{
-      const height = Math.ceil(target.scrollHeight);
-      if (window.frameElement) {{
-        window.frameElement.style.height = `${{height}}px`;
-      }}
-    }} catch (_err) {{
-      /* best effort only */
-    }}
-  }};
-  try {{
-    const moduleUrls = {module_urls};
-    const cache = (globalThis.__easydotGraphvizCache__ ||= new Map());
-    const loadGraphviz = async () => {{
-      let lastError = null;
-      for (const url of moduleUrls) {{
-        let pending = cache.get(url);
-        if (!pending) {{
-          pending = (async () => {{
-            const mod = await import(url);
-            const Graphviz = mod.Graphviz || (mod.default && mod.default.Graphviz) || mod.default;
-            if (!Graphviz || !Graphviz.load) {{
-              throw new Error("Graphviz WASM module does not expose Graphviz.load()");
-            }}
-            return Graphviz.load();
-          }})();
-          cache.set(url, pending);
-        }}
-        try {{
-          return await pending;
-        }} catch (error) {{
-          if (cache.get(url) === pending) {{
-            cache.delete(url);
-          }}
-          lastError = error;
-        }}
-      }}
-      throw lastError || new Error("Unable to load Graphviz WASM module");
-    }};
-    const graphviz = await loadGraphviz();
-    const svg = await graphviz.layout(decode("{dot_b64}"), decode("{safe_format}"), decode("{safe_engine}"));
-    {svg_install_js}
-    const fit = {js_fit};
-    const scale = {js_scale};
-    const skipFrameResize = {js_skip_frame_resize};
-    const svgEl = target.querySelector(":scope > svg");
-    if (svgEl) {{
-      const fitToolbarEl = {fit_toolbar_query};
-      const toolbarExtra = fitToolbarEl ? Math.ceil(fitToolbarEl.getBoundingClientRect().height) : 0;
-      if (fit === "horizontal") {{
-        const naturalW = svgEl.getBoundingClientRect().width;
-        svgEl.removeAttribute("width");
-        svgEl.removeAttribute("height");
-        svgEl.style.display = "block";
-        svgEl.style.width = "100%";
-        svgEl.style.height = "auto";
-        svgEl.style.maxWidth = `${{Math.ceil(naturalW * scale)}}px`;
-      }} else if (fit === "vertical") {{
-        const rect = svgEl.getBoundingClientRect();
-        const avail = Math.max(1, document.documentElement.clientHeight - toolbarExtra);
-        const targetH = Math.min(rect.height * scale, avail);
-        const k = rect.height > 0 ? targetH / rect.height : 1;
-        svgEl.removeAttribute("width");
-        svgEl.removeAttribute("height");
-        svgEl.style.display = "block";
-        svgEl.style.height = `${{Math.floor(targetH)}}px`;
-        svgEl.style.width = `${{Math.floor(rect.width * k)}}px`;
-      }} else if (fit === "both") {{
-        const rect = svgEl.getBoundingClientRect();
-        const availW = Math.max(1, target.clientWidth);
-        const availH = Math.max(1, document.documentElement.clientHeight - toolbarExtra);
-        const k = Math.min(scale, availW / rect.width, availH / rect.height);
-        svgEl.removeAttribute("width");
-        svgEl.removeAttribute("height");
-        svgEl.style.display = "block";
-        svgEl.style.width = `${{Math.floor(rect.width * k)}}px`;
-        svgEl.style.height = `${{Math.floor(rect.height * k)}}px`;
-      }} else if (scale !== 1) {{
-        const rect = svgEl.getBoundingClientRect();
-        svgEl.removeAttribute("width");
-        svgEl.removeAttribute("height");
-        svgEl.style.display = "block";
-        svgEl.style.width = `${{Math.ceil(rect.width * scale)}}px`;
-        svgEl.style.height = `${{Math.ceil(rect.height * scale)}}px`;
-      }}
-    }}{toolbar_setup_js}
-    if (!skipFrameResize) {{
-      resizeFrameToContent();
-      requestAnimationFrame(resizeFrameToContent);
-      setTimeout(resizeFrameToContent, 50);
-    }}
-  }} catch (error) {{
-    target.innerHTML = "<pre style='white-space:pre-wrap;color:#b00020'>Graph rendering failed: "
-      + String(error) + "</pre>";
-    resizeFrameToContent();
-  }}
-}})();
+{script}
 </script>
 """
 
