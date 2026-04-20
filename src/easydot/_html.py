@@ -5,6 +5,7 @@ from __future__ import annotations
 import base64
 import html as html_lib
 import json
+import os
 import sys
 import uuid
 
@@ -12,6 +13,7 @@ from easydot._version import UPSTREAM_PACKAGE, UPSTREAM_VERSION
 from easydot._server import asset_urls
 
 DEFAULT_CDN_URL = f"https://cdn.jsdelivr.net/npm/{UPSTREAM_PACKAGE}@{UPSTREAM_VERSION}/dist/index.min.js"
+SOURCE_ENV_VAR = "EASYDOT_SOURCE"
 
 
 def _b64_text(value: str) -> str:
@@ -36,13 +38,20 @@ def _normalize_fit(value: bool | str) -> str:
     )
 
 
+def _normalize_source(source: str) -> str:
+    if source == "auto":
+        source = os.environ.get(SOURCE_ENV_VAR, source)
+    if source in ("auto", "local", "cdn"):
+        return source
+    raise ValueError(f"source must be 'auto', 'local', or 'cdn'; got {source!r}")
+
+
 def _module_urls(source: str) -> list[str]:
+    source = _normalize_source(source)
     if source == "cdn":
         return [DEFAULT_CDN_URL]
     if source == "local":
         return [asset_urls()["js"]]
-    if source != "auto":
-        raise ValueError("source must be 'auto', 'local', or 'cdn'")
 
     try:
         return [asset_urls()["js"], DEFAULT_CDN_URL]

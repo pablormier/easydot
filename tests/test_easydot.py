@@ -65,6 +65,31 @@ def test_html_cdn_source_avoids_local_url():
     assert "http://127.0.0.1:" not in rendered
 
 
+def test_html_auto_source_can_be_overridden_by_env(monkeypatch):
+    monkeypatch.setenv("EASYDOT_SOURCE", "cdn")
+
+    rendered = easydot.html("digraph { A -> B }")
+
+    assert DEFAULT_CDN_URL in rendered
+    assert "http://127.0.0.1:" not in rendered
+
+
+def test_html_explicit_source_wins_over_env(monkeypatch):
+    monkeypatch.setenv("EASYDOT_SOURCE", "cdn")
+
+    rendered = easydot.html("digraph { A -> B }", source="local")
+
+    assert "http://127.0.0.1:" in rendered
+    assert DEFAULT_CDN_URL not in rendered
+
+
+def test_html_rejects_invalid_env_source(monkeypatch):
+    monkeypatch.setenv("EASYDOT_SOURCE", "offline")
+
+    with pytest.raises(ValueError, match="source must be 'auto', 'local', or 'cdn'"):
+        easydot.html("digraph { A -> B }")
+
+
 def test_display_exposes_rich_reprs():
     obj = easydot.display("digraph { A -> B }")
 

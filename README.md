@@ -47,6 +47,19 @@ easydot.display("digraph { A -> B }", source="cdn")    # CDN only
 | `local` | yes | no | Air-gapped / offline environments |
 | `cdn` | no | yes | Remote hosts where `127.0.0.1` isn't reachable from the browser |
 
+To change the notebook-wide default without editing every display call, set
+`EASYDOT_SOURCE` before rendering any graphs:
+
+```python
+import os
+
+os.environ["EASYDOT_SOURCE"] = "cdn"
+```
+
+The environment variable accepts `auto`, `local`, or `cdn`. It only applies
+when `source="auto"` is used, so explicit `source="local"` and `source="cdn"`
+calls still win.
+
 ## marimo Support
 
 `easydot` works with [marimo](https://marimo.io) out of the box. It detects marimo and uses its iframe display helper automatically, since marimo doesn't execute arbitrary inline scripts from plain `text/html` outputs. All source modes work.
