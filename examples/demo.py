@@ -18,8 +18,10 @@ def _(mo):
     mo.md(r"""
     # easydot showcase
 
-    Browser-side Graphviz rendering with fit modes, engines, toolbar controls,
-    and marimo iframe integration.
+    Render Graphviz DOT inside browser notebooks without installing Graphviz
+    binaries. `easydot` ships the WebAssembly renderer, handles notebook
+    display integration, and keeps the output small by loading the renderer
+    from a local asset server or CDN.
 
     ```bash
     uv run marimo edit examples/demo.py
@@ -110,7 +112,7 @@ def _():
 def _(architecture_dot, easydot, mo):
     mo.vstack(
         [
-            mo.md("## 1. A richer default render"),
+            mo.md("## 1. Notebook-native DOT rendering"),
             easydot.display(architecture_dot, fit=True),
         ]
     )
@@ -119,64 +121,138 @@ def _(architecture_dot, easydot, mo):
 
 @app.cell
 def _():
-    tree_dot = """
+    biology_dot = """
     digraph G {
       graph [
-        rankdir=TB,
+        rankdir=LR,
         bgcolor="transparent",
-        pad=0.25,
+        pad=0.30,
         nodesep=0.42,
-        ranksep=0.60,
-        ordering=out
+        ranksep=0.90,
+        splines=true,
+        compound=true,
+        fontname="Helvetica"
       ];
       node [
         shape=box,
         style="rounded,filled",
         fontname="Helvetica",
         fontsize=11,
-        color="#394b59",
-        fillcolor="#f7f9fb",
-        margin="0.14,0.08"
+        margin="0.14,0.08",
+        color="#36515f",
+        fillcolor="#f8fbfc"
       ];
-      edge [color="#7a8699", arrowsize=0.65];
+      edge [fontname="Helvetica", fontsize=9, color="#637381", arrowsize=0.65];
 
-      root [label="Release", fillcolor="#e3efff", penwidth=1.5];
-      plan [label="Plan"];
-      build [label="Build"];
-      verify [label="Verify"];
-      ship [label="Ship"];
-      root -> {plan build verify ship};
+      subgraph cluster_membrane {
+        label="Membrane";
+        color="#d5e7f2";
+        style="rounded,filled";
+        fillcolor="#f6fbff";
+        egf [label="EGF", shape=oval, fillcolor="#dff1ff"];
+        tgfb [label="TGF-beta", shape=oval, fillcolor="#dff1ff"];
+        egfr [label="EGFR"];
+        tgfbr [label="TGFBR"];
+        integrin [label="Integrin"];
+      }
 
-      scope [label="Scope"];
-      design [label="Design"];
-      risks [label="Risks"];
-      plan -> {scope design risks};
+      subgraph cluster_signaling {
+        label="Signaling";
+        color="#d8ead5";
+        style="rounded,filled";
+        fillcolor="#fbfffa";
+        ras [label="RAS"];
+        raf [label="RAF"];
+        mek [label="MEK"];
+        erk [label="ERK"];
+        pi3k [label="PI3K"];
+        akt [label="AKT"];
+        mtor [label="mTOR"];
+        smad [label="SMAD2/3"];
+        fak [label="FAK"];
+        nfkb [label="NF-kB"];
+      }
 
-      package [label="Package"];
-      docs [label="Docs"];
-      assets [label="Assets"];
-      build -> {package docs assets};
+      subgraph cluster_nucleus {
+        label="Nucleus";
+        color="#eadfc4";
+        style="rounded,filled";
+        fillcolor="#fffaf0";
+        myc [label="MYC"];
+        hif [label="HIF1A"];
+        stat3 [label="STAT3"];
+        twist [label="TWIST"];
+      }
 
-      tests [label="Tests"];
-      qa [label="QA"];
-      review [label="Review"];
-      verify -> {tests qa review};
+      subgraph cluster_response {
+        label="Phenotype";
+        color="#efd5dd";
+        style="rounded,filled";
+        fillcolor="#fff8fa";
+        proliferation [label="Proliferation", fillcolor="#ffe8ef"];
+        survival [label="Survival", fillcolor="#ffe8ef"];
+        invasion [label="Invasion", fillcolor="#ffe8ef"];
+        angiogenesis [label="Angiogenesis", fillcolor="#ffe8ef"];
+      }
 
-      tag [label="Tag"];
-      publish [label="Publish"];
-      announce [label="Announce"];
-      ship -> {tag publish announce};
+      egf -> egfr;
+      tgfb -> tgfbr;
+      egfr -> ras -> raf -> mek -> erk -> myc;
+      egfr -> pi3k -> akt -> mtor -> hif;
+      tgfbr -> smad -> twist;
+      integrin -> fak -> nfkb -> stat3;
+      akt -> survival;
+      myc -> proliferation;
+      hif -> angiogenesis;
+      twist -> invasion;
+      stat3 -> survival;
+      nfkb -> proliferation [style=dashed, label="inflammation"];
+      mtor -> proliferation [style=dashed];
+      smad -> proliferation [color="#b42318", style=dashed, label="context"];
     }
     """
-    return (tree_dot,)
+    return (biology_dot,)
 
 
 @app.cell
-def _(easydot, mo, tree_dot):
+def _(biology_dot, easydot, mo):
     mo.vstack(
         [
-            mo.md("## 2. Tree layout"),
-            easydot.display(tree_dot, fit=True),
+            mo.md("## 2. Complex DOT without local Graphviz"),
+            easydot.display(biology_dot, fit=True),
+        ]
+    )
+    return
+
+
+@app.cell
+def _():
+    source_dot = """
+    digraph G {
+      graph [rankdir=LR, bgcolor="transparent", pad=0.20];
+      node [shape=box, style="rounded,filled", fontname="Helvetica", fillcolor="#f7f9fb"];
+      dot [label="DOT"];
+      wasm [label="Graphviz WASM"];
+      svg [label="SVG output"];
+      dot -> wasm -> svg;
+    }
+    """
+    return (source_dot,)
+
+
+@app.cell
+def _(easydot, mo, source_dot):
+    mo.vstack(
+        [
+            mo.md("## 3. Source loading"),
+            mo.hstack(
+                [
+                    mo.vstack([mo.md("**`source='auto'`**"), easydot.display(source_dot, source="auto", fit=True)]),
+                    mo.vstack([mo.md("**`source='local'`**"), easydot.display(source_dot, source="local", fit=True)]),
+                    mo.vstack([mo.md("**`source='cdn'`**"), easydot.display(source_dot, source="cdn", fit=True)]),
+                ],
+                wrap=True,
+            ),
         ]
     )
     return
@@ -232,27 +308,12 @@ def _():
 def _(easydot, mo, wide_dot):
     mo.vstack(
         [
-            mo.md("## 3. Horizontal fit"),
+            mo.md("## 4. Fit modes for notebook cells"),
             mo.hstack(
                 [
-                    mo.vstack(
-                        [
-                            mo.md("**Natural size**"),
-                            easydot.display(wide_dot, fit=False),
-                        ]
-                    ),
-                    mo.vstack(
-                        [
-                            mo.md("**`fit='horizontal'`**"),
-                            easydot.display(wide_dot, fit="horizontal"),
-                        ]
-                    ),
-                    mo.vstack(
-                        [
-                            mo.md("**`fit=True`**"),
-                            easydot.display(wide_dot, fit=True),
-                        ]
-                    ),
+                    mo.vstack([mo.md("**Natural size**"), easydot.display(wide_dot, fit=False)]),
+                    mo.vstack([mo.md("**`fit='horizontal'`**"), easydot.display(wide_dot, fit="horizontal")]),
+                    mo.vstack([mo.md("**`fit=True`**"), easydot.display(wide_dot, fit=True)]),
                 ],
                 wrap=True,
             ),
@@ -293,7 +354,7 @@ def _():
 def _(easydot, mo, tall_dot):
     mo.vstack(
         [
-            mo.md("## 4. Vertical fit with an explicit viewport"),
+            mo.md("## 5. Vertical fit with an explicit viewport"),
             mo.hstack(
                 [
                     mo.vstack(
@@ -323,46 +384,15 @@ def _(easydot, mo, tall_dot):
 
 
 @app.cell
-def _(easydot, mo, tree_dot):
+def _(biology_dot, easydot, mo):
     mo.vstack(
         [
-            mo.md("## 5. Scale"),
+            mo.md("## 6. Scale and toolbar"),
             mo.hstack(
                 [
-                    mo.vstack(
-                        [
-                            mo.md(f"**`scale={scale}`**"),
-                            easydot.display(tree_dot, scale=scale),
-                        ]
-                    )
-                    for scale in (0.25, 0.5, 1.0, 1.5)
-                ],
-                wrap=True,
-            ),
-        ]
-    )
-    return
-
-
-@app.cell
-def _(architecture_dot, easydot, mo):
-    mo.vstack(
-        [
-            mo.md("## 6. Toolbar"),
-            mo.hstack(
-                [
-                    mo.vstack(
-                        [
-                            mo.md("**Toolbar on**"),
-                            easydot.display(architecture_dot, fit=True, toolbar=True),
-                        ]
-                    ),
-                    mo.vstack(
-                        [
-                            mo.md("**Toolbar off**"),
-                            easydot.display(architecture_dot, fit=True, toolbar=False),
-                        ]
-                    ),
+                    mo.vstack([mo.md("**`scale=0.7`**"), easydot.display(biology_dot, scale=0.7)]),
+                    mo.vstack([mo.md("**`scale=1.15`**"), easydot.display(biology_dot, scale=1.15)]),
+                    mo.vstack([mo.md("**Toolbar off**"), easydot.display(biology_dot, fit=True, toolbar=False)]),
                 ],
                 wrap=True,
             ),
@@ -395,15 +425,10 @@ def _(easydot, mo):
     """
     mo.vstack(
         [
-            mo.md("## 7. Engines"),
+            mo.md("## 7. Engine selection"),
             mo.hstack(
                 [
-                    mo.vstack(
-                        [
-                            mo.md(f"**{engine}**"),
-                            easydot.display(engine_dot, engine=engine, fit=True),
-                        ]
-                    )
+                    mo.vstack([mo.md(f"**{engine}**"), easydot.display(engine_dot, engine=engine, fit=True)])
                     for engine in ("dot", "neato", "fdp", "sfdp", "circo", "twopi")
                 ],
                 wrap=True,
@@ -426,7 +451,7 @@ def _(mo):
     not rendered in this demo:
 
     ```python
-    easydot.display(tree_dot, iframe=False)
+    easydot.display(biology_dot, iframe=False)
     ```
     """)
     return
