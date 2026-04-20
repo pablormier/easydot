@@ -15,7 +15,7 @@
 
 Browser notebooks can run JavaScript and WebAssembly, but they can't import arbitrary files from Python `site-packages`. Embedding the full Graphviz WASM bundle in every cell bloats your notebook. Loading from a CDN on every render breaks offline and locked-down environments.
 
-`easydot` takes the middle path: it vendors [Graphviz WASM](https://github.com/nicknisi/hpcc-js-wasm), starts a tiny loopback asset server on demand, and lets notebook outputs reference a local URL. Small outputs. No manual setup. Works offline.
+`easydot` takes the middle path: it vendors [Graphviz WASM](https://github.com/hpcc-systems/hpcc-js-wasm), starts a tiny loopback asset server on demand, and lets notebook outputs reference a local URL. Small outputs. No manual setup. Works offline.
 
 ## Quick Start
 
