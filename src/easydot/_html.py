@@ -59,13 +59,16 @@ _CHECK_ICON = (
 def _toolbar_stylesheet(attr_id: str) -> str:
     return (
         f"#{attr_id} .easydot-toolbar{{"
-        "position:absolute;top:4px;right:4px;display:flex;gap:2px;"
-        "opacity:0;transition:opacity 150ms ease-in-out;z-index:1;"
+        "position:sticky;top:0;z-index:1;"
+        "display:flex;justify-content:flex-end;gap:2px;padding:3px 4px;"
+        "background:rgba(255,255,255,0.78);backdrop-filter:blur(4px);"
+        "-webkit-backdrop-filter:blur(4px);"
+        "opacity:0.4;transition:opacity 150ms ease-in-out;"
         "}"
         f"#{attr_id}:hover .easydot-toolbar,"
         f"#{attr_id} .easydot-toolbar:focus-within{{opacity:1}}"
         f"#{attr_id} .easydot-toolbar button{{"
-        "background:transparent;border:0;border-radius:4px;padding:4px;"
+        "background:transparent;border:0;border-radius:4px;padding:3px;"
         "margin:0;cursor:pointer;color:#6b6b6b;line-height:0;"
         "transition:color 120ms ease-in-out,background-color 120ms ease-in-out;"
         "}"
@@ -108,8 +111,14 @@ def html(
     toolbar_markup = ""
     svg_install_js = "target.innerHTML = svg;"
     toolbar_setup_js = ""
+    resize_toolbar_js = ""
+    resize_toolbar_extra = "0"
     if toolbar:
-        container_style += ";position:relative"
+        resize_toolbar_js = (
+            "\n      const toolbarEl = target.querySelector(':scope > [data-easydot-toolbar]');"
+            "\n      const toolbarExtra = toolbarEl ? Math.ceil(toolbarEl.getBoundingClientRect().height) : 0;"
+        )
+        resize_toolbar_extra = "toolbarExtra"
         toolbar_markup = (
             f"<style>{_toolbar_stylesheet(attr_id)}</style>"
             '<div class="easydot-toolbar" data-easydot-toolbar>'
@@ -188,8 +197,9 @@ def html(
   }};
   const resizeFrameToContent = () => {{
     try {{
-      const svg = target.querySelector(":scope > svg");
-      const height = svg ? Math.ceil(svg.getBoundingClientRect().height) + 24 : target.scrollHeight + 24;
+      const svg = target.querySelector(":scope > svg");{resize_toolbar_js}
+      const baseHeight = svg ? Math.ceil(svg.getBoundingClientRect().height) : target.scrollHeight;
+      const height = baseHeight + {resize_toolbar_extra} + 24;
       if (window.frameElement) {{
         window.frameElement.style.height = `${{Math.max(120, height)}}px`;
       }}
@@ -234,14 +244,20 @@ def html(
     const svgEl = target.querySelector(":scope > svg");
     if (svgEl) {{
       if (fit) {{
+        const naturalW = svgEl.getBoundingClientRect().width;
         svgEl.removeAttribute("width");
         svgEl.removeAttribute("height");
-        svgEl.style.maxWidth = "100%";
+        svgEl.style.display = "block";
+        svgEl.style.width = "100%";
         svgEl.style.height = "auto";
-      }}
-      if (scale !== 1) {{
-        svgEl.style.transform = `scale(${{scale}})`;
-        svgEl.style.transformOrigin = "top left";
+        svgEl.style.maxWidth = `${{Math.ceil(naturalW * scale)}}px`;
+      }} else if (scale !== 1) {{
+        const rect = svgEl.getBoundingClientRect();
+        svgEl.removeAttribute("width");
+        svgEl.removeAttribute("height");
+        svgEl.style.display = "block";
+        svgEl.style.width = `${{Math.ceil(rect.width * scale)}}px`;
+        svgEl.style.height = `${{Math.ceil(rect.height * scale)}}px`;
       }}
     }}{toolbar_setup_js}
     resizeFrameToContent();

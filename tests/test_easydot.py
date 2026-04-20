@@ -108,8 +108,17 @@ def test_html_fit_and_scale_flags_are_embedded():
 
     assert "const fit = true;" in rendered
     assert "const scale = 1.5;" in rendered
-    assert 'svgEl.style.maxWidth = "100%"' in rendered
-    assert "svgEl.style.transform = `scale(${scale})`" in rendered
+    assert 'svgEl.style.height = "auto"' in rendered
+    assert "naturalW * scale" in rendered
+    assert "svgEl.style.transform" not in rendered
+
+
+def test_html_scale_without_fit_uses_pixel_sizing():
+    rendered = easydot.html("digraph { A -> B }", source="cdn", scale=2.0)
+
+    assert "rect.width * scale" in rendered
+    assert "rect.height * scale" in rendered
+    assert "svgEl.style.transform" not in rendered
 
 
 def test_html_default_omits_toolbar():
@@ -128,7 +137,7 @@ def test_html_toolbar_injects_download_and_copy_handlers():
     assert "data-easydot-download" in rendered
     assert "navigator.clipboard.writeText(svg)" in rendered
     assert "new Blob([svg]" in rendered
-    assert "position:relative" in rendered
+    assert "position:sticky" in rendered
 
 
 def test_display_propagates_toolbar_flag():
