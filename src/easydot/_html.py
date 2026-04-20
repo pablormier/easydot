@@ -22,6 +22,21 @@ def _js_literal(value: object) -> str:
     return json.dumps(value).replace("</", "<\\/")
 
 
+_FIT_MODES = ("none", "horizontal", "vertical", "both")
+_DEFAULT_IFRAME_HEIGHT = "220px"
+
+
+def _normalize_fit(value: bool | str) -> str:
+    if isinstance(value, bool):
+        return "both" if value else "none"
+    if isinstance(value, str) and value in _FIT_MODES:
+        return value
+    raise ValueError(
+        "fit must be True, False, or one of 'horizontal', 'vertical', 'both', 'none'; "
+        f"got {value!r}"
+    )
+
+
 def _module_urls(source: str) -> list[str]:
     if source == "cdn":
         return [DEFAULT_CDN_URL]
@@ -89,7 +104,7 @@ def html(
     format: str = "svg",
     container_id: str | None = None,
     source: str = "auto",
-    fit: bool = False,
+    fit: bool | str = False,
     scale: float = 1.0,
     toolbar: bool = True,
 ) -> str:
@@ -98,23 +113,35 @@ def html(
     if container_id is None:
         container_id = f"easydot-{uuid.uuid4().hex}"
 
+    fit_mode = _normalize_fit(fit)
     dot_b64 = _b64_text(dot)
     module_urls = _js_literal(_module_urls(source))
     safe_engine = _b64_text(engine)
     safe_format = _b64_text(format)
     attr_id = html_lib.escape(container_id, quote=True)
     js_id = _js_literal(container_id)
-    js_fit = _js_literal(bool(fit))
+    js_fit = _js_literal(fit_mode)
     js_scale = _js_literal(float(scale))
     js_format = _js_literal(format)
+    skip_frame_resize = fit_mode in ("vertical", "both")
+    js_skip_frame_resize = _js_literal(skip_frame_resize)
 
+    body_style = "html,body{margin:0;padding:0}"
     container_style = "overflow:auto"
+    if fit_mode == "vertical":
+        body_style = "html,body{margin:0;padding:0;height:100%;overflow:hidden}"
+        container_style = "height:100%;overflow-x:auto;overflow-y:hidden;box-sizing:border-box"
+    elif fit_mode == "both":
+        body_style = "html,body{margin:0;padding:0;height:100%;overflow:hidden}"
+        container_style = "height:100%;overflow:hidden;box-sizing:border-box"
     toolbar_markup = ""
     svg_install_js = "target.innerHTML = svg;"
     toolbar_setup_js = ""
     resize_toolbar_js = ""
     resize_toolbar_extra = "0"
+    fit_toolbar_query = "null"
     if toolbar:
+        fit_toolbar_query = "target.querySelector(':scope > [data-easydot-toolbar]')"
         resize_toolbar_js = (
             "\n      const toolbarEl = target.querySelector(':scope > [data-easydot-toolbar]');"
             "\n      const toolbarExtra = toolbarEl ? Math.ceil(toolbarEl.getBoundingClientRect().height) : 0;"
@@ -184,6 +211,7 @@ def html(
     }}"""
 
     return f"""
+<style>{body_style}</style>
 <div id="{attr_id}" style="{container_style}">{toolbar_markup}</div>
 <script type="module">
 (async () => {{
@@ -198,11 +226,9 @@ def html(
   }};
   const resizeFrameToContent = () => {{
     try {{
-      const svg = target.querySelector(":scope > svg");{resize_toolbar_js}
-      const baseHeight = svg ? Math.ceil(svg.getBoundingClientRect().height) : target.scrollHeight;
-      const height = baseHeight + {resize_toolbar_extra} + 24;
+      const height = Math.ceil(target.scrollHeight);
       if (window.frameElement) {{
-        window.frameElement.style.height = `${{Math.max(120, height)}}px`;
+        window.frameElement.style.height = `${{height}}px`;
       }}
     }} catch (_err) {{
       /* best effort only */
@@ -242,9 +268,12 @@ def html(
     {svg_install_js}
     const fit = {js_fit};
     const scale = {js_scale};
+    const skipFrameResize = {js_skip_frame_resize};
     const svgEl = target.querySelector(":scope > svg");
     if (svgEl) {{
-      if (fit) {{
+      const fitToolbarEl = {fit_toolbar_query};
+      const toolbarExtra = fitToolbarEl ? Math.ceil(fitToolbarEl.getBoundingClientRect().height) : 0;
+      if (fit === "horizontal") {{
         const naturalW = svgEl.getBoundingClientRect().width;
         svgEl.removeAttribute("width");
         svgEl.removeAttribute("height");
@@ -252,6 +281,26 @@ def html(
         svgEl.style.width = "100%";
         svgEl.style.height = "auto";
         svgEl.style.maxWidth = `${{Math.ceil(naturalW * scale)}}px`;
+      }} else if (fit === "vertical") {{
+        const rect = svgEl.getBoundingClientRect();
+        const avail = Math.max(1, document.documentElement.clientHeight - toolbarExtra);
+        const targetH = Math.min(rect.height * scale, avail);
+        const k = rect.height > 0 ? targetH / rect.height : 1;
+        svgEl.removeAttribute("width");
+        svgEl.removeAttribute("height");
+        svgEl.style.display = "block";
+        svgEl.style.height = `${{Math.floor(targetH)}}px`;
+        svgEl.style.width = `${{Math.floor(rect.width * k)}}px`;
+      }} else if (fit === "both") {{
+        const rect = svgEl.getBoundingClientRect();
+        const availW = Math.max(1, target.clientWidth);
+        const availH = Math.max(1, document.documentElement.clientHeight - toolbarExtra);
+        const k = Math.min(scale, availW / rect.width, availH / rect.height);
+        svgEl.removeAttribute("width");
+        svgEl.removeAttribute("height");
+        svgEl.style.display = "block";
+        svgEl.style.width = `${{Math.floor(rect.width * k)}}px`;
+        svgEl.style.height = `${{Math.floor(rect.height * k)}}px`;
       }} else if (scale !== 1) {{
         const rect = svgEl.getBoundingClientRect();
         svgEl.removeAttribute("width");
@@ -261,9 +310,11 @@ def html(
         svgEl.style.height = `${{Math.ceil(rect.height * scale)}}px`;
       }}
     }}{toolbar_setup_js}
-    resizeFrameToContent();
-    requestAnimationFrame(resizeFrameToContent);
-    setTimeout(resizeFrameToContent, 50);
+    if (!skipFrameResize) {{
+      resizeFrameToContent();
+      requestAnimationFrame(resizeFrameToContent);
+      setTimeout(resizeFrameToContent, 50);
+    }}
   }} catch (error) {{
     target.innerHTML = "<pre style='white-space:pre-wrap;color:#b00020'>Graph rendering failed: "
       + String(error) + "</pre>";
@@ -283,9 +334,9 @@ class DotDisplay:
         *,
         engine: str = "dot",
         format: str = "svg",
-        iframe_height: str = "220px",
+        iframe_height: str | None = None,
         source: str = "auto",
-        fit: bool = False,
+        fit: bool | str = False,
         scale: float = 1.0,
         iframe: bool = True,
         toolbar: bool = True,
@@ -293,7 +344,7 @@ class DotDisplay:
         self.dot = dot
         self.engine = engine
         self.format = format
-        self.iframe_height = iframe_height
+        self.iframe_height = iframe_height if iframe_height is not None else _DEFAULT_IFRAME_HEIGHT
         self.source = source
         self.fit = fit
         self.scale = scale
@@ -370,9 +421,9 @@ def display(
     *,
     engine: str = "dot",
     format: str = "svg",
-    iframe_height: str = "220px",
+    iframe_height: str | None = None,
     source: str = "auto",
-    fit: bool = False,
+    fit: bool | str = False,
     scale: float = 1.0,
     iframe: bool = True,
     toolbar: bool = True,

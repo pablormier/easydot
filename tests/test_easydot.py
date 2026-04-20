@@ -99,18 +99,43 @@ def test_display_publishes_html_in_ipython(monkeypatch):
 def test_html_defaults_omit_fit_and_scale():
     rendered = easydot.html("digraph { A -> B }", source="cdn")
 
-    assert "const fit = false;" in rendered
+    assert 'const fit = "none";' in rendered
     assert "const scale = 1.0;" in rendered
 
 
-def test_html_fit_and_scale_flags_are_embedded():
+def test_html_fit_true_enables_both_mode():
     rendered = easydot.html("digraph { A -> B }", source="cdn", fit=True, scale=1.5)
 
-    assert "const fit = true;" in rendered
+    assert 'const fit = "both";' in rendered
     assert "const scale = 1.5;" in rendered
+    assert "availW / rect.width" in rendered
+    assert "availH / rect.height" in rendered
+    assert "skipFrameResize = true" in rendered
+    assert "height:100vh;overflow:hidden;box-sizing:border-box" in rendered
+    assert "svgEl.style.transform" not in rendered
+
+
+def test_html_fit_horizontal_uses_width_autoscale():
+    rendered = easydot.html("digraph { A -> B }", source="cdn", fit="horizontal", scale=1.5)
+
+    assert 'const fit = "horizontal";' in rendered
     assert 'svgEl.style.height = "auto"' in rendered
     assert "naturalW * scale" in rendered
-    assert "svgEl.style.transform" not in rendered
+    assert "skipFrameResize = false" in rendered
+
+
+def test_html_fit_vertical_caps_on_viewport_height():
+    rendered = easydot.html("digraph { A -> B }", source="cdn", fit="vertical")
+
+    assert 'const fit = "vertical";' in rendered
+    assert "documentElement.clientHeight" in rendered
+    assert "skipFrameResize = true" in rendered
+    assert "height:100vh;overflow-x:auto;overflow-y:hidden;box-sizing:border-box" in rendered
+
+
+def test_html_rejects_unknown_fit_value():
+    with pytest.raises(ValueError):
+        easydot.html("digraph { A -> B }", source="cdn", fit="diagonal")
 
 
 def test_html_scale_without_fit_uses_pixel_sizing():
