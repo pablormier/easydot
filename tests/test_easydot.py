@@ -112,6 +112,32 @@ def test_html_fit_and_scale_flags_are_embedded():
     assert "svgEl.style.transform = `scale(${scale})`" in rendered
 
 
+def test_html_default_omits_toolbar():
+    rendered = easydot.html("digraph { A -> B }", source="cdn")
+
+    assert "data-easydot-toolbar" not in rendered
+    assert "data-easydot-copy" not in rendered
+    assert "data-easydot-download" not in rendered
+
+
+def test_html_toolbar_injects_download_and_copy_handlers():
+    rendered = easydot.html("digraph { A -> B }", source="cdn", toolbar=True)
+
+    assert "data-easydot-toolbar" in rendered
+    assert "data-easydot-copy" in rendered
+    assert "data-easydot-download" in rendered
+    assert "navigator.clipboard.writeText(svg)" in rendered
+    assert "new Blob([svg]" in rendered
+    assert "position:relative" in rendered
+
+
+def test_display_propagates_toolbar_flag():
+    obj = easydot.display("digraph { A -> B }", source="cdn", toolbar=True)
+
+    assert obj.toolbar is True
+    assert "data-easydot-toolbar" in obj._body_html()
+
+
 @pytest.mark.skipif(
     importlib.util.find_spec("marimo") is None,
     reason="marimo not installed",

@@ -36,6 +36,48 @@ def _module_urls(source: str) -> list[str]:
         return [DEFAULT_CDN_URL]
 
 
+_COPY_ICON = (
+    '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" '
+    'stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+    '<rect x="9" y="9" width="11" height="11" rx="2"/>'
+    '<path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>'
+)
+_DOWNLOAD_ICON = (
+    '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" '
+    'stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+    '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>'
+    '<polyline points="7 10 12 15 17 10"/>'
+    '<line x1="12" y1="15" x2="12" y2="3"/></svg>'
+)
+_CHECK_ICON = (
+    '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" '
+    'stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+    '<polyline points="20 6 9 17 4 12"/></svg>'
+)
+
+
+def _toolbar_stylesheet(attr_id: str) -> str:
+    return (
+        f"#{attr_id} .easydot-toolbar{{"
+        "position:absolute;top:4px;right:4px;display:flex;gap:2px;"
+        "opacity:0;transition:opacity 150ms ease-in-out;z-index:1;"
+        "}"
+        f"#{attr_id}:hover .easydot-toolbar,"
+        f"#{attr_id} .easydot-toolbar:focus-within{{opacity:1}}"
+        f"#{attr_id} .easydot-toolbar button{{"
+        "background:transparent;border:0;border-radius:4px;padding:4px;"
+        "margin:0;cursor:pointer;color:#6b6b6b;line-height:0;"
+        "transition:color 120ms ease-in-out,background-color 120ms ease-in-out;"
+        "}"
+        f"#{attr_id} .easydot-toolbar button:hover{{color:#111;background:rgba(0,0,0,0.06)}}"
+        f"#{attr_id} .easydot-toolbar button:focus-visible{{"
+        "outline:2px solid rgba(0,95,204,0.5);outline-offset:1px;"
+        "}"
+        f"#{attr_id} .easydot-toolbar button.is-success{{color:#1a7f37}}"
+        f"#{attr_id} .easydot-toolbar button.is-error{{color:#b00020}}"
+    )
+
+
 def html(
     dot: str,
     *,
@@ -45,6 +87,7 @@ def html(
     source: str = "auto",
     fit: bool = False,
     scale: float = 1.0,
+    toolbar: bool = False,
 ) -> str:
     """Return browser HTML that renders DOT with the bundled Graphviz WASM module."""
 
@@ -59,9 +102,79 @@ def html(
     js_id = _js_literal(container_id)
     js_fit = _js_literal(bool(fit))
     js_scale = _js_literal(float(scale))
+    js_format = _js_literal(format)
+
+    container_style = "overflow:auto"
+    toolbar_markup = ""
+    svg_install_js = "target.innerHTML = svg;"
+    toolbar_setup_js = ""
+    if toolbar:
+        container_style += ";position:relative"
+        toolbar_markup = (
+            f"<style>{_toolbar_stylesheet(attr_id)}</style>"
+            '<div class="easydot-toolbar" data-easydot-toolbar>'
+            f'<button type="button" data-easydot-copy aria-label="Copy SVG to clipboard" title="Copy SVG">{_COPY_ICON}</button>'
+            f'<button type="button" data-easydot-download aria-label="Download SVG" title="Download SVG">{_DOWNLOAD_ICON}</button>'
+            "</div>"
+        )
+        svg_install_js = (
+            "const toolbarEl = target.querySelector('[data-easydot-toolbar]');"
+            "target.querySelectorAll(':scope > :not([data-easydot-toolbar]):not(style)').forEach((node) => node.remove());"
+            "target.insertAdjacentHTML('beforeend', svg);"
+        )
+        toolbar_setup_js = f"""
+    if (toolbarEl) {{
+      const format = {js_format};
+      const mime = format === "svg" ? "image/svg+xml;charset=utf-8" : "text/plain;charset=utf-8";
+      const filename = `graph.${{format}}`;
+      const checkIcon = {_js_literal(_CHECK_ICON)};
+      const flash = (btn, state) => {{
+        const original = btn.dataset.originalIcon ||= btn.innerHTML;
+        btn.classList.remove("is-success", "is-error");
+        btn.classList.add(state === "error" ? "is-error" : "is-success");
+        if (state !== "error") {{
+          btn.innerHTML = checkIcon;
+        }}
+        clearTimeout(btn.dataset.flashTimer);
+        btn.dataset.flashTimer = setTimeout(() => {{
+          btn.innerHTML = btn.dataset.originalIcon;
+          btn.classList.remove("is-success", "is-error");
+        }}, 1100);
+      }};
+      const copyBtn = toolbarEl.querySelector("[data-easydot-copy]");
+      const downloadBtn = toolbarEl.querySelector("[data-easydot-download]");
+      if (copyBtn) {{
+        copyBtn.addEventListener("click", async () => {{
+          try {{
+            await navigator.clipboard.writeText(svg);
+            flash(copyBtn, "success");
+          }} catch (_err) {{
+            flash(copyBtn, "error");
+          }}
+        }});
+      }}
+      if (downloadBtn) {{
+        downloadBtn.addEventListener("click", () => {{
+          try {{
+            const blob = new Blob([svg], {{ type: mime }});
+            const url = URL.createObjectURL(blob);
+            const anchor = document.createElement("a");
+            anchor.href = url;
+            anchor.download = filename;
+            document.body.appendChild(anchor);
+            anchor.click();
+            anchor.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 0);
+            flash(downloadBtn, "success");
+          }} catch (_err) {{
+            flash(downloadBtn, "error");
+          }}
+        }});
+      }}
+    }}"""
 
     return f"""
-<div id="{attr_id}" style="overflow:auto"></div>
+<div id="{attr_id}" style="{container_style}">{toolbar_markup}</div>
 <script type="module">
 (async () => {{
   const target = document.getElementById({js_id});
@@ -75,7 +188,7 @@ def html(
   }};
   const resizeFrameToContent = () => {{
     try {{
-      const svg = target.querySelector("svg");
+      const svg = target.querySelector(":scope > svg");
       const height = svg ? Math.ceil(svg.getBoundingClientRect().height) + 24 : target.scrollHeight + 24;
       if (window.frameElement) {{
         window.frameElement.style.height = `${{Math.max(120, height)}}px`;
@@ -115,10 +228,10 @@ def html(
     }};
     const graphviz = await loadGraphviz();
     const svg = await graphviz.layout(decode("{dot_b64}"), decode("{safe_format}"), decode("{safe_engine}"));
-    target.innerHTML = svg;
+    {svg_install_js}
     const fit = {js_fit};
     const scale = {js_scale};
-    const svgEl = target.querySelector("svg");
+    const svgEl = target.querySelector(":scope > svg");
     if (svgEl) {{
       if (fit) {{
         svgEl.removeAttribute("width");
@@ -130,7 +243,7 @@ def html(
         svgEl.style.transform = `scale(${{scale}})`;
         svgEl.style.transformOrigin = "top left";
       }}
-    }}
+    }}{toolbar_setup_js}
     resizeFrameToContent();
     requestAnimationFrame(resizeFrameToContent);
     setTimeout(resizeFrameToContent, 50);
@@ -158,6 +271,7 @@ class DotDisplay:
         fit: bool = False,
         scale: float = 1.0,
         iframe: bool = True,
+        toolbar: bool = False,
     ) -> None:
         self.dot = dot
         self.engine = engine
@@ -167,6 +281,7 @@ class DotDisplay:
         self.fit = fit
         self.scale = scale
         self.iframe = iframe
+        self.toolbar = toolbar
 
     def _body_html(self) -> str:
         return html(
@@ -176,6 +291,7 @@ class DotDisplay:
             source=self.source,
             fit=self.fit,
             scale=self.scale,
+            toolbar=self.toolbar,
         )
 
     def _iframe_html(self) -> str:
@@ -242,6 +358,7 @@ def display(
     fit: bool = False,
     scale: float = 1.0,
     iframe: bool = True,
+    toolbar: bool = False,
 ) -> DotDisplay:
     """Return a rich display object for a DOT graph."""
 
@@ -254,4 +371,5 @@ def display(
         fit=fit,
         scale=scale,
         iframe=iframe,
+        toolbar=toolbar,
     )
