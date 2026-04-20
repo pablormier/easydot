@@ -20,12 +20,12 @@
     },
     {
       "id": "MJUe",
-      "code_hash": "ec8292d21863193e53177d2982969529",
+      "code_hash": "9af959c22dcc4bc66f992df0d215e54e",
       "outputs": [
         {
           "type": "data",
           "data": {
-            "text/markdown": "<span class=\"markdown prose dark:prose-invert contents\"><h1 id=\"easydot-showcase\">easydot showcase</h1>\n<span class=\"paragraph\">This notebook exercises every rendering option in <code>easydot</code> against a\nvariety of DOT graphs. It doubles as a manual test harness \u2014 launch it\nwith:</span>\n<div class=\"language-bash codehilite\"><pre><span></span><code>uv<span class=\"w\"> </span>run<span class=\"w\"> </span>marimo<span class=\"w\"> </span>edit<span class=\"w\"> </span>examples/demo.py\n</code></pre></div></span>"
+            "text/markdown": "<span class=\"markdown prose dark:prose-invert contents\"><h1 id=\"easydot-showcase\">easydot showcase</h1>\n<span class=\"paragraph\">Browser-side Graphviz rendering with fit modes, engines, toolbar controls,\nand marimo iframe integration.</span>\n<div class=\"language-bash codehilite\"><pre><span></span><code>uv<span class=\"w\"> </span>run<span class=\"w\"> </span>marimo<span class=\"w\"> </span>edit<span class=\"w\"> </span>examples/demo.py\n</code></pre></div></span>"
           }
         }
       ],
@@ -33,12 +33,12 @@
     },
     {
       "id": "vblA",
-      "code_hash": "93228fe674a513d909ad5743a59605c1",
+      "code_hash": "f3b31d6d5ae4052cec54c6ed4aad00e6",
       "outputs": [
         {
           "type": "data",
           "data": {
-            "text/markdown": "<span class=\"markdown prose dark:prose-invert contents\"><h2 id=\"1-basic-rendering\">1. Basic rendering</h2></span>"
+            "text/plain": ""
           }
         }
       ],
@@ -46,12 +46,12 @@
     },
     {
       "id": "bkHC",
-      "code_hash": "624e507c32c49629cc394e3df64a7f0a",
+      "code_hash": "b7695a6f899291abd94c09e36ab23673",
       "outputs": [
         {
           "type": "data",
           "data": {
-            "text/html": "<iframe src='./@file/9221-256091-hZKtfZh6.html' width='100%' height='220px' onload='__resizeIframe(this)' frameborder='0'></iframe>"
+            "text/html": "<div style='display: flex;flex: 1;flex-direction: column;justify-content: flex-start;align-items: normal;flex-wrap: nowrap;gap: 0.5rem'><span class=\"markdown prose dark:prose-invert contents\"><h2 id=\"1-a-richer-default-render\">1. A richer default render</h2></span><iframe src='./@file/11156-310465-YnCw6KiI.html' width='100%' height='400px' onload='__resizeIframe(this)' frameborder='0'></iframe></div>"
           }
         }
       ],
@@ -59,12 +59,12 @@
     },
     {
       "id": "lEQa",
-      "code_hash": "34102077d359a2c6bb095ffffefaa374",
+      "code_hash": "53d095eaf879fb416c9ccc45d8994947",
       "outputs": [
         {
           "type": "data",
           "data": {
-            "text/markdown": "<span class=\"markdown prose dark:prose-invert contents\"><h2 id=\"2-engines\">2. Engines</h2>\n<span class=\"paragraph\">The same undirected graph laid out by every Graphviz engine. <code>neato</code>,\n<code>fdp</code>, <code>sfdp</code> use force-directed layouts; <code>circo</code> uses circular;\n<code>twopi</code> places nodes radially.</span></span>"
+            "text/plain": ""
           }
         }
       ],
@@ -72,12 +72,12 @@
     },
     {
       "id": "PKri",
-      "code_hash": "f83710962ab4881d1eb90071a86854eb",
+      "code_hash": "a1dce924d383693572835aa249dbe315",
       "outputs": [
         {
           "type": "data",
           "data": {
-            "text/html": "<div style='display: flex;flex: 1;flex-direction: row;justify-content: space-between;align-items: normal;flex-wrap: wrap;gap: 0.5rem'><div style='display: flex;flex: 1;flex-direction: column;justify-content: flex-start;align-items: normal;flex-wrap: nowrap;gap: 0.5rem'><span class=\"markdown prose dark:prose-invert contents\"><span class=\"paragraph\"><strong>dot</strong></span></span><iframe src='./@file/9369-256091-1RNUwvc7.html' width='100%' height='400px' onload='__resizeIframe(this)' frameborder='0'></iframe></div><div style='display: flex;flex: 1;flex-direction: column;justify-content: flex-start;align-items: normal;flex-wrap: nowrap;gap: 0.5rem'><span class=\"markdown prose dark:prose-invert contents\"><span class=\"paragraph\"><strong>neato</strong></span></span><iframe src='./@file/9373-256091-Js5cyj2m.html' width='100%' height='400px' onload='__resizeIframe(this)' frameborder='0'></iframe></div><div style='display: flex;flex: 1;flex-direction: column;justify-content: flex-start;align-items: normal;flex-wrap: nowrap;gap: 0.5rem'><span class=\"markdown prose dark:prose-invert contents\"><span class=\"paragraph\"><strong>fdp</strong></span></span><iframe src='./@file/9369-256091-pnYI5n0n.html' width='100%' height='400px' onload='__resizeIframe(this)' frameborder='0'></iframe></div><div style='display: flex;flex: 1;flex-direction: column;justify-content: flex-start;align-items: normal;flex-wrap: nowrap;gap: 0.5rem'><span class=\"markdown prose dark:prose-invert contents\"><span class=\"paragraph\"><strong>sfdp</strong></span></span><iframe src='./@file/9373-256091-qTKUgRKJ.html' width='100%' height='400px' onload='__resizeIframe(this)' frameborder='0'></iframe></div><div style='display: flex;flex: 1;flex-direction: column;justify-content: flex-start;align-items: normal;flex-wrap: nowrap;gap: 0.5rem'><span class=\"markdown prose dark:prose-invert contents\"><span class=\"paragraph\"><strong>circo</strong></span></span><iframe src='./@file/9373-256091-D0sJlugA.html' width='100%' height='400px' onload='__resizeIframe(this)' frameborder='0'></iframe></div><div style='display: flex;flex: 1;flex-direction: column;justify-content: flex-start;align-items: normal;flex-wrap: nowrap;gap: 0.5rem'><span class=\"markdown prose dark:prose-invert contents\"><span class=\"paragraph\"><strong>twopi</strong></span></span><iframe src='./@file/9373-256091-9gOii9xL.html' width='100%' height='400px' onload='__resizeIframe(this)' frameborder='0'></iframe></div></div>"
+            "text/html": "<div style='display: flex;flex: 1;flex-direction: column;justify-content: flex-start;align-items: normal;flex-wrap: nowrap;gap: 0.5rem'><span class=\"markdown prose dark:prose-invert contents\"><h2 id=\"2-tree-layout\">2. Tree layout</h2></span><iframe src='./@file/10172-310465-FBQuucbw.html' width='100%' height='400px' onload='__resizeIframe(this)' frameborder='0'></iframe></div>"
           }
         }
       ],
@@ -85,12 +85,12 @@
     },
     {
       "id": "Xref",
-      "code_hash": "a8174877dc691cf6762c2722019fe3d7",
+      "code_hash": "f735d78b326b1917a8d1bc7991c4d575",
       "outputs": [
         {
           "type": "data",
           "data": {
-            "text/markdown": "<span class=\"markdown prose dark:prose-invert contents\"><h2 id=\"3-fit-modes-on-a-wide-graph\">3. Fit modes on a wide graph</h2>\n<span class=\"paragraph\">A graph that naturally spans horizontally. Resize the browser to see how\neach fit mode reacts.</span></span>"
+            "text/plain": ""
           }
         }
       ],
@@ -98,12 +98,12 @@
     },
     {
       "id": "SFPL",
-      "code_hash": "2c42a266c91af7ace0e2f6c0b311b994",
+      "code_hash": "06b4859d41e6350774d88825d5800764",
       "outputs": [
         {
           "type": "data",
           "data": {
-            "text/plain": ""
+            "text/html": "<div style='display: flex;flex: 1;flex-direction: column;justify-content: flex-start;align-items: normal;flex-wrap: nowrap;gap: 0.5rem'><span class=\"markdown prose dark:prose-invert contents\"><h2 id=\"3-horizontal-fit\">3. Horizontal fit</h2></span><div style='display: flex;flex: 1;flex-direction: row;justify-content: space-between;align-items: normal;flex-wrap: wrap;gap: 0.5rem'><div style='display: flex;flex: 1;flex-direction: column;justify-content: flex-start;align-items: normal;flex-wrap: nowrap;gap: 0.5rem'><span class=\"markdown prose dark:prose-invert contents\"><span class=\"paragraph\"><strong>Natural size</strong></span></span><iframe src='./@file/10225-310465-c0KNrUsb.html' width='100%' height='400px' onload='__resizeIframe(this)' frameborder='0'></iframe></div><div style='display: flex;flex: 1;flex-direction: column;justify-content: flex-start;align-items: normal;flex-wrap: nowrap;gap: 0.5rem'><span class=\"markdown prose dark:prose-invert contents\"><span class=\"paragraph\"><strong><code>fit='horizontal'</code></strong></span></span><iframe src='./@file/10231-310465-joO6FPqt.html' width='100%' height='400px' onload='__resizeIframe(this)' frameborder='0'></iframe></div><div style='display: flex;flex: 1;flex-direction: column;justify-content: flex-start;align-items: normal;flex-wrap: nowrap;gap: 0.5rem'><span class=\"markdown prose dark:prose-invert contents\"><span class=\"paragraph\"><strong><code>fit=True</code></strong></span></span><iframe src='./@file/10288-310465-n45CbvTC.html' width='100%' height='400px' onload='__resizeIframe(this)' frameborder='0'></iframe></div></div></div>"
           }
         }
       ],
@@ -111,46 +111,7 @@
     },
     {
       "id": "BYtC",
-      "code_hash": "3b53017ca763d503d331c952d3b17584",
-      "outputs": [
-        {
-          "type": "data",
-          "data": {
-            "text/html": "<iframe src='./@file/9481-256091-708qsQGN.html' width='100%' height='220px' onload='__resizeIframe(this)' frameborder='0'></iframe>"
-          }
-        }
-      ],
-      "console": []
-    },
-    {
-      "id": "RGSE",
-      "code_hash": "739c4c5bdb45400c96f69ff1a19ee89f",
-      "outputs": [
-        {
-          "type": "data",
-          "data": {
-            "text/html": "<iframe src='./@file/9545-256091-HgibAiIE.html' width='100%' height='400px' onload='__resizeIframe(this)' frameborder='0'></iframe>"
-          }
-        }
-      ],
-      "console": []
-    },
-    {
-      "id": "Kclp",
-      "code_hash": "f71e981b9495b4f23b505166fe9ab05b",
-      "outputs": [
-        {
-          "type": "data",
-          "data": {
-            "text/markdown": "<span class=\"markdown prose dark:prose-invert contents\"><h2 id=\"4-fit-modes-on-a-tall-graph\">4. Fit modes on a tall graph</h2>\n<span class=\"paragraph\">A deep vertical chain. Before the new fit modes, <code>fit=True</code> would still\nleave a vertical scrollbar \u2014 now <code>fit=True</code> (both) and <code>fit='vertical'</code>\nclamp the height to the iframe.</span></span>"
-          }
-        }
-      ],
-      "console": []
-    },
-    {
-      "id": "emfo",
-      "code_hash": "d1795e77fafd69d9871e8164a5fa2587",
+      "code_hash": "6141eadd64f1d3c914f7209fa29c2935",
       "outputs": [
         {
           "type": "data",
@@ -162,13 +123,52 @@
       "console": []
     },
     {
-      "id": "Hstk",
-      "code_hash": "a77c2cc9cb1d1cea28637bc651747d50",
+      "id": "RGSE",
+      "code_hash": "40b9dabbe97973375f4ca06c31345393",
       "outputs": [
         {
           "type": "data",
           "data": {
-            "text/html": "<iframe src='./@file/9629-256091-1BdD8U1B.html' width='100%' height='220px' onload='__resizeIframe(this)' frameborder='0'></iframe>"
+            "text/html": "<div style='display: flex;flex: 1;flex-direction: column;justify-content: flex-start;align-items: normal;flex-wrap: nowrap;gap: 0.5rem'><span class=\"markdown prose dark:prose-invert contents\"><h2 id=\"4-vertical-fit-with-an-explicit-viewport\">4. Vertical fit with an explicit viewport</h2></span><div style='display: flex;flex: 1;flex-direction: row;justify-content: space-between;align-items: normal;flex-wrap: wrap;gap: 0.5rem'><div style='display: flex;flex: 1;flex-direction: column;justify-content: flex-start;align-items: normal;flex-wrap: nowrap;gap: 0.5rem'><span class=\"markdown prose dark:prose-invert contents\"><span class=\"paragraph\"><strong>Natural size</strong></span></span><iframe src='./@file/9681-310465-d4UFuofP.html' width='100%' height='360px' onload='__resizeIframe(this)' frameborder='0'></iframe></div><div style='display: flex;flex: 1;flex-direction: column;justify-content: flex-start;align-items: normal;flex-wrap: nowrap;gap: 0.5rem'><span class=\"markdown prose dark:prose-invert contents\"><span class=\"paragraph\"><strong><code>fit='vertical'</code></strong></span></span><iframe src='./@file/9766-310465-T3fotDVf.html' width='100%' height='360px' onload='__resizeIframe(this)' frameborder='0'></iframe></div><div style='display: flex;flex: 1;flex-direction: column;justify-content: flex-start;align-items: normal;flex-wrap: nowrap;gap: 0.5rem'><span class=\"markdown prose dark:prose-invert contents\"><span class=\"paragraph\"><strong><code>fit=True</code></strong></span></span><iframe src='./@file/9744-310465-RcAsCweb.html' width='100%' height='360px' onload='__resizeIframe(this)' frameborder='0'></iframe></div></div></div>"
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "Kclp",
+      "code_hash": "cab4399474bced727951bd8de4fd4d01",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/html": "<div style='display: flex;flex: 1;flex-direction: column;justify-content: flex-start;align-items: normal;flex-wrap: nowrap;gap: 0.5rem'><span class=\"markdown prose dark:prose-invert contents\"><h2 id=\"5-scale\">5. Scale</h2></span><div style='display: flex;flex: 1;flex-direction: row;justify-content: space-between;align-items: normal;flex-wrap: wrap;gap: 0.5rem'><div style='display: flex;flex: 1;flex-direction: column;justify-content: flex-start;align-items: normal;flex-wrap: nowrap;gap: 0.5rem'><span class=\"markdown prose dark:prose-invert contents\"><span class=\"paragraph\"><strong><code>scale=0.25</code></strong></span></span><iframe src='./@file/10110-310465-sG6vFxPA.html' width='100%' height='400px' onload='__resizeIframe(this)' frameborder='0'></iframe></div><div style='display: flex;flex: 1;flex-direction: column;justify-content: flex-start;align-items: normal;flex-wrap: nowrap;gap: 0.5rem'><span class=\"markdown prose dark:prose-invert contents\"><span class=\"paragraph\"><strong><code>scale=0.5</code></strong></span></span><iframe src='./@file/10109-310465-340kkgOh.html' width='100%' height='400px' onload='__resizeIframe(this)' frameborder='0'></iframe></div><div style='display: flex;flex: 1;flex-direction: column;justify-content: flex-start;align-items: normal;flex-wrap: nowrap;gap: 0.5rem'><span class=\"markdown prose dark:prose-invert contents\"><span class=\"paragraph\"><strong><code>scale=1.0</code></strong></span></span><iframe src='./@file/10109-310465-XrjD0VDS.html' width='100%' height='400px' onload='__resizeIframe(this)' frameborder='0'></iframe></div><div style='display: flex;flex: 1;flex-direction: column;justify-content: flex-start;align-items: normal;flex-wrap: nowrap;gap: 0.5rem'><span class=\"markdown prose dark:prose-invert contents\"><span class=\"paragraph\"><strong><code>scale=1.5</code></strong></span></span><iframe src='./@file/10109-310465-1Y75Prb6.html' width='100%' height='400px' onload='__resizeIframe(this)' frameborder='0'></iframe></div></div></div>"
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "emfo",
+      "code_hash": "49fb587ddf13b6aa574a4ad8a1484a68",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/html": "<div style='display: flex;flex: 1;flex-direction: column;justify-content: flex-start;align-items: normal;flex-wrap: nowrap;gap: 0.5rem'><span class=\"markdown prose dark:prose-invert contents\"><h2 id=\"6-toolbar\">6. Toolbar</h2></span><div style='display: flex;flex: 1;flex-direction: row;justify-content: space-between;align-items: normal;flex-wrap: wrap;gap: 0.5rem'><div style='display: flex;flex: 1;flex-direction: column;justify-content: flex-start;align-items: normal;flex-wrap: nowrap;gap: 0.5rem'><span class=\"markdown prose dark:prose-invert contents\"><span class=\"paragraph\"><strong>Toolbar on</strong></span></span><iframe src='./@file/11156-310465-cZLEA1Bp.html' width='100%' height='400px' onload='__resizeIframe(this)' frameborder='0'></iframe></div><div style='display: flex;flex: 1;flex-direction: column;justify-content: flex-start;align-items: normal;flex-wrap: nowrap;gap: 0.5rem'><span class=\"markdown prose dark:prose-invert contents\"><span class=\"paragraph\"><strong>Toolbar off</strong></span></span><iframe src='./@file/6818-310465-v6dcVwwd.html' width='100%' height='400px' onload='__resizeIframe(this)' frameborder='0'></iframe></div></div></div>"
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "Hstk",
+      "code_hash": "1ef7108c393d4008f89ca7f72e2d2089",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/html": "<div style='display: flex;flex: 1;flex-direction: column;justify-content: flex-start;align-items: normal;flex-wrap: nowrap;gap: 0.5rem'><span class=\"markdown prose dark:prose-invert contents\"><h2 id=\"7-engines\">7. Engines</h2></span><div style='display: flex;flex: 1;flex-direction: row;justify-content: space-between;align-items: normal;flex-wrap: wrap;gap: 0.5rem'><div style='display: flex;flex: 1;flex-direction: column;justify-content: flex-start;align-items: normal;flex-wrap: nowrap;gap: 0.5rem'><span class=\"markdown prose dark:prose-invert contents\"><span class=\"paragraph\"><strong>dot</strong></span></span><iframe src='./@file/9412-310465-pZnJcdXm.html' width='100%' height='400px' onload='__resizeIframe(this)' frameborder='0'></iframe></div><div style='display: flex;flex: 1;flex-direction: column;justify-content: flex-start;align-items: normal;flex-wrap: nowrap;gap: 0.5rem'><span class=\"markdown prose dark:prose-invert contents\"><span class=\"paragraph\"><strong>neato</strong></span></span><iframe src='./@file/9416-310465-OIntyu5d.html' width='100%' height='400px' onload='__resizeIframe(this)' frameborder='0'></iframe></div><div style='display: flex;flex: 1;flex-direction: column;justify-content: flex-start;align-items: normal;flex-wrap: nowrap;gap: 0.5rem'><span class=\"markdown prose dark:prose-invert contents\"><span class=\"paragraph\"><strong>fdp</strong></span></span><iframe src='./@file/9412-310465-3p9fWQZT.html' width='100%' height='400px' onload='__resizeIframe(this)' frameborder='0'></iframe></div><div style='display: flex;flex: 1;flex-direction: column;justify-content: flex-start;align-items: normal;flex-wrap: nowrap;gap: 0.5rem'><span class=\"markdown prose dark:prose-invert contents\"><span class=\"paragraph\"><strong>sfdp</strong></span></span><iframe src='./@file/9416-310465-MDFglbf4.html' width='100%' height='400px' onload='__resizeIframe(this)' frameborder='0'></iframe></div><div style='display: flex;flex: 1;flex-direction: column;justify-content: flex-start;align-items: normal;flex-wrap: nowrap;gap: 0.5rem'><span class=\"markdown prose dark:prose-invert contents\"><span class=\"paragraph\"><strong>circo</strong></span></span><iframe src='./@file/9416-310465-9G6hr1wm.html' width='100%' height='400px' onload='__resizeIframe(this)' frameborder='0'></iframe></div><div style='display: flex;flex: 1;flex-direction: column;justify-content: flex-start;align-items: normal;flex-wrap: nowrap;gap: 0.5rem'><span class=\"markdown prose dark:prose-invert contents\"><span class=\"paragraph\"><strong>twopi</strong></span></span><iframe src='./@file/9416-310465-2dVp7STQ.html' width='100%' height='400px' onload='__resizeIframe(this)' frameborder='0'></iframe></div></div></div>"
           }
         }
       ],
@@ -176,129 +176,12 @@
     },
     {
       "id": "nWHF",
-      "code_hash": "3e02238c09f1531e1454b711a335cac5",
+      "code_hash": "6868c021a2a9a4a468d5de6530367a36",
       "outputs": [
         {
           "type": "data",
           "data": {
-            "text/html": "<iframe src='./@file/9715-256091-9erGrcu7.html' width='100%' height='400px' onload='__resizeIframe(this)' frameborder='0'></iframe>"
-          }
-        }
-      ],
-      "console": []
-    },
-    {
-      "id": "iLit",
-      "code_hash": "fe03080b5d26966c4e275a6364f88822",
-      "outputs": [
-        {
-          "type": "data",
-          "data": {
-            "text/html": "<div style='display: flex;flex: 1;flex-direction: row;justify-content: space-between;align-items: normal;flex-wrap: nowrap;gap: 0.5rem'><span class=\"markdown prose dark:prose-invert contents\"><span class=\"paragraph\"><strong><code>fit=False</code></strong> \u2014 natural size, vertical scrollbar</span></span><iframe src='./@file/9629-256091-G4VCfSXQ.html' width='100%' height='220px' onload='__resizeIframe(this)' frameborder='0'></iframe><span class=\"markdown prose dark:prose-invert contents\"><span class=\"paragraph\"><strong><code>fit='horizontal'</code></strong> \u2014 only constrains width, still scrolls vertically</span></span><iframe src='./@file/9635-256091-4dnBpBJP.html' width='100%' height='220px' onload='__resizeIframe(this)' frameborder='0'></iframe><span class=\"markdown prose dark:prose-invert contents\"><span class=\"paragraph\"><strong><code>fit='vertical'</code></strong> \u2014 constrains height to iframe</span></span><iframe src='./@file/9715-256091-QUwwsc52.html' width='100%' height='400px' onload='__resizeIframe(this)' frameborder='0'></iframe><span class=\"markdown prose dark:prose-invert contents\"><span class=\"paragraph\"><strong><code>fit=True</code></strong> (both) \u2014 fills iframe, preserves aspect ratio</span></span><iframe src='./@file/9693-256091-zuJRTH3P.html' width='100%' height='400px' onload='__resizeIframe(this)' frameborder='0'></iframe></div>"
-          }
-        }
-      ],
-      "console": []
-    },
-    {
-      "id": "ZHCJ",
-      "code_hash": "f44edeb788956494cbc15a751aaecd45",
-      "outputs": [
-        {
-          "type": "data",
-          "data": {
-            "text/markdown": "<span class=\"markdown prose dark:prose-invert contents\"><h2 id=\"5-scale\">5. Scale</h2>\n<span class=\"paragraph\"><code>scale</code> multiplies the natural size. With <code>fit=False</code> it's the final\ndisplay size; with the fit modes it acts as an upper-bound multiplier.</span></span>"
-          }
-        }
-      ],
-      "console": []
-    },
-    {
-      "id": "ROlb",
-      "code_hash": "9141d8acc97c03df143fd77394deea4e",
-      "outputs": [
-        {
-          "type": "data",
-          "data": {
-            "text/html": "<div style='display: flex;flex: 1;flex-direction: row;justify-content: space-between;align-items: normal;flex-wrap: wrap;gap: 0.5rem'><div style='display: flex;flex: 1;flex-direction: column;justify-content: flex-start;align-items: normal;flex-wrap: nowrap;gap: 0.5rem'><span class=\"markdown prose dark:prose-invert contents\"><span class=\"paragraph\"><strong><code>scale=0.75</code></strong></span></span><iframe src='./@file/9222-256091-VvTPh3Ey.html' width='100%' height='200px' onload='__resizeIframe(this)' frameborder='0'></iframe></div><div style='display: flex;flex: 1;flex-direction: column;justify-content: flex-start;align-items: normal;flex-wrap: nowrap;gap: 0.5rem'><span class=\"markdown prose dark:prose-invert contents\"><span class=\"paragraph\"><strong><code>scale=1.0</code></strong></span></span><iframe src='./@file/9221-256091-jhYzoOl6.html' width='100%' height='200px' onload='__resizeIframe(this)' frameborder='0'></iframe></div><div style='display: flex;flex: 1;flex-direction: column;justify-content: flex-start;align-items: normal;flex-wrap: nowrap;gap: 0.5rem'><span class=\"markdown prose dark:prose-invert contents\"><span class=\"paragraph\"><strong><code>scale=1.5</code></strong></span></span><iframe src='./@file/9221-256091-aQ0LOEcE.html' width='100%' height='200px' onload='__resizeIframe(this)' frameborder='0'></iframe></div><div style='display: flex;flex: 1;flex-direction: column;justify-content: flex-start;align-items: normal;flex-wrap: nowrap;gap: 0.5rem'><span class=\"markdown prose dark:prose-invert contents\"><span class=\"paragraph\"><strong><code>scale=2.0</code></strong></span></span><iframe src='./@file/9221-256091-aa28DtxS.html' width='100%' height='200px' onload='__resizeIframe(this)' frameborder='0'></iframe></div></div>"
-          }
-        }
-      ],
-      "console": []
-    },
-    {
-      "id": "qnkX",
-      "code_hash": "7e226399e6ba3bdc91152bed7c4d04c1",
-      "outputs": [
-        {
-          "type": "data",
-          "data": {
-            "text/markdown": "<span class=\"markdown prose dark:prose-invert contents\"><h2 id=\"6-toolbar\">6. Toolbar</h2>\n<span class=\"paragraph\">The toolbar adds copy/download buttons in the top-right. It appears\nfaintly until hovered.</span></span>"
-          }
-        }
-      ],
-      "console": []
-    },
-    {
-      "id": "TqIu",
-      "code_hash": "df6d92a6141078e2439b905c0af6acea",
-      "outputs": [
-        {
-          "type": "data",
-          "data": {
-            "text/html": "<div style='display: flex;flex: 1;flex-direction: row;justify-content: space-between;align-items: normal;flex-wrap: nowrap;gap: 0.5rem'><div style='display: flex;flex: 1;flex-direction: column;justify-content: flex-start;align-items: normal;flex-wrap: nowrap;gap: 0.5rem'><span class=\"markdown prose dark:prose-invert contents\"><span class=\"paragraph\"><strong><code>toolbar=True</code></strong> (default)</span></span><iframe src='./@file/9221-256091-XLLI8XA6.html' width='100%' height='200px' onload='__resizeIframe(this)' frameborder='0'></iframe></div><div style='display: flex;flex: 1;flex-direction: column;justify-content: flex-start;align-items: normal;flex-wrap: nowrap;gap: 0.5rem'><span class=\"markdown prose dark:prose-invert contents\"><span class=\"paragraph\"><strong><code>toolbar=False</code></strong></span></span><iframe src='./@file/4695-256091-qB8g1qyu.html' width='100%' height='200px' onload='__resizeIframe(this)' frameborder='0'></iframe></div></div>"
-          }
-        }
-      ],
-      "console": []
-    },
-    {
-      "id": "Vxnm",
-      "code_hash": "bd76e020706e03ec5e2cd87fdbe2e1b4",
-      "outputs": [
-        {
-          "type": "data",
-          "data": {
-            "text/markdown": "<span class=\"markdown prose dark:prose-invert contents\"><h2 id=\"7-clusters-colors-shapes\">7. Clusters, colors, shapes</h2>\n<span class=\"paragraph\">A richer example to show off styling.</span></span>"
-          }
-        }
-      ],
-      "console": []
-    },
-    {
-      "id": "DnEU",
-      "code_hash": "8ff81073f79768822e09901a9e58d877",
-      "outputs": [
-        {
-          "type": "data",
-          "data": {
-            "text/html": "<iframe src='./@file/10465-256091-Y2SaX45R.html' width='100%' height='380px' onload='__resizeIframe(this)' frameborder='0'></iframe>"
-          }
-        }
-      ],
-      "console": []
-    },
-    {
-      "id": "ulZA",
-      "code_hash": "93145c033ed068181cf3beb23346e3d6",
-      "outputs": [
-        {
-          "type": "data",
-          "data": {
-            "text/markdown": "<span class=\"markdown prose dark:prose-invert contents\"><h2 id=\"8-non-iframe-mode\">8. Non-iframe mode</h2>\n<span class=\"paragraph\">Passing <code>iframe=False</code> skips the iframe wrapper \u2014 useful when embedding\ninto a page that already provides layout.</span></span>"
-          }
-        }
-      ],
-      "console": []
-    },
-    {
-      "id": "ecfG",
-      "code_hash": "ce694e42dd1ee8d275ae1b4371c94246",
-      "outputs": [
-        {
-          "type": "data",
-          "data": {
-            "text/html": "\n<style>html,body{margin:0;padding:0}</style>\n<div id=\"easydot-3ee096943350494f945491fdf216cc36\" style=\"overflow:auto\"><style>#easydot-3ee096943350494f945491fdf216cc36 .easydot-toolbar{position:sticky;top:0;left:0;z-index:1;display:flex;justify-content:flex-end;gap:2px;padding:3px 4px;background:rgba(255,255,255,0.78);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);opacity:0.4;transition:opacity 150ms ease-in-out;box-sizing:border-box;width:100%;}#easydot-3ee096943350494f945491fdf216cc36:hover .easydot-toolbar,#easydot-3ee096943350494f945491fdf216cc36 .easydot-toolbar:focus-within{opacity:1}#easydot-3ee096943350494f945491fdf216cc36 .easydot-toolbar button{background:transparent;border:0;border-radius:4px;padding:3px;margin:0;cursor:pointer;color:#6b6b6b;line-height:0;transition:color 120ms ease-in-out,background-color 120ms ease-in-out;}#easydot-3ee096943350494f945491fdf216cc36 .easydot-toolbar button:hover{color:#111;background:rgba(0,0,0,0.06)}#easydot-3ee096943350494f945491fdf216cc36 .easydot-toolbar button:focus-visible{outline:2px solid rgba(0,95,204,0.5);outline-offset:1px;}#easydot-3ee096943350494f945491fdf216cc36 .easydot-toolbar button.is-success{color:#1a7f37}#easydot-3ee096943350494f945491fdf216cc36 .easydot-toolbar button.is-error{color:#b00020}</style><div class=\"easydot-toolbar\" data-easydot-toolbar><button type=\"button\" data-easydot-copy aria-label=\"Copy SVG to clipboard\" title=\"Copy SVG\"><svg viewBox=\"0 0 24 24\" width=\"14\" height=\"14\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"9\" y=\"9\" width=\"11\" height=\"11\" rx=\"2\"/><path d=\"M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1\"/></svg></button><button type=\"button\" data-easydot-download aria-label=\"Download SVG\" title=\"Download SVG\"><svg viewBox=\"0 0 24 24\" width=\"14\" height=\"14\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4\"/><polyline points=\"7 10 12 15 17 10\"/><line x1=\"12\" y1=\"15\" x2=\"12\" y2=\"3\"/></svg></button></div></div>\n<script type=\"module\">\n(async () => {\n  const target = document.getElementById(\"easydot-3ee096943350494f945491fdf216cc36\");\n  if (!target) {\n    return;\n  }\n  const decode = (encoded) => {\n    const binary = atob(encoded);\n    const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));\n    return new TextDecoder(\"utf-8\").decode(bytes);\n  };\n  const resizeFrameToContent = () => {\n    try {\n      const svg = target.querySelector(\":scope > svg\");\n      const toolbarEl = target.querySelector(':scope > [data-easydot-toolbar]');\n      const toolbarExtra = toolbarEl ? Math.ceil(toolbarEl.getBoundingClientRect().height) : 0;\n      const baseHeight = svg ? Math.ceil(svg.getBoundingClientRect().height) : target.scrollHeight;\n      const height = baseHeight + toolbarExtra + 24;\n      if (window.frameElement) {\n        window.frameElement.style.height = `${Math.max(120, height)}px`;\n      }\n    } catch (_err) {\n      /* best effort only */\n    }\n  };\n  try {\n    const moduleUrls = [\"http://127.0.0.1:52858/index.js\", \"https://cdn.jsdelivr.net/npm/@hpcc-js/wasm-graphviz@1.21.2/dist/index.min.js\"];\n    const cache = (globalThis.__easydotGraphvizCache__ ||= new Map());\n    const loadGraphviz = async () => {\n      let lastError = null;\n      for (const url of moduleUrls) {\n        let pending = cache.get(url);\n        if (!pending) {\n          pending = (async () => {\n            const mod = await import(url);\n            const Graphviz = mod.Graphviz || (mod.default && mod.default.Graphviz) || mod.default;\n            if (!Graphviz || !Graphviz.load) {\n              throw new Error(\"Graphviz WASM module does not expose Graphviz.load()\");\n            }\n            return Graphviz.load();\n          })();\n          cache.set(url, pending);\n        }\n        try {\n          return await pending;\n        } catch (error) {\n          if (cache.get(url) === pending) {\n            cache.delete(url);\n          }\n          lastError = error;\n        }\n      }\n      throw lastError || new Error(\"Unable to load Graphviz WASM module\");\n    };\n    const graphviz = await loadGraphviz();\n    const svg = await graphviz.layout(decode(\"CmRpZ3JhcGggRyB7CiAgcmFua2Rpcj1MUjsKICBBIC0+IEIgLT4gQzsKICBBIC0+IEM7Cn0K\"), decode(\"c3Zn\"), decode(\"ZG90\"));\n    const toolbarEl = target.querySelector('[data-easydot-toolbar]');target.querySelectorAll(':scope > :not([data-easydot-toolbar]):not(style)').forEach((node) => node.remove());target.insertAdjacentHTML('beforeend', svg);\n    const fit = \"none\";\n    const scale = 1.0;\n    const skipFrameResize = false;\n    const svgEl = target.querySelector(\":scope > svg\");\n    if (svgEl) {\n      const fitToolbarEl = target.querySelector(':scope > [data-easydot-toolbar]');\n      const toolbarExtra = fitToolbarEl ? Math.ceil(fitToolbarEl.getBoundingClientRect().height) : 0;\n      if (fit === \"horizontal\") {\n        const naturalW = svgEl.getBoundingClientRect().width;\n        svgEl.removeAttribute(\"width\");\n        svgEl.removeAttribute(\"height\");\n        svgEl.style.display = \"block\";\n        svgEl.style.width = \"100%\";\n        svgEl.style.height = \"auto\";\n        svgEl.style.maxWidth = `${Math.ceil(naturalW * scale)}px`;\n      } else if (fit === \"vertical\") {\n        const rect = svgEl.getBoundingClientRect();\n        const avail = Math.max(1, document.documentElement.clientHeight - toolbarExtra - 2);\n        const targetH = Math.min(rect.height * scale, avail);\n        const k = rect.height > 0 ? targetH / rect.height : 1;\n        svgEl.removeAttribute(\"width\");\n        svgEl.removeAttribute(\"height\");\n        svgEl.style.display = \"block\";\n        svgEl.style.height = `${Math.floor(targetH)}px`;\n        svgEl.style.width = `${Math.floor(rect.width * k)}px`;\n      } else if (fit === \"both\") {\n        const rect = svgEl.getBoundingClientRect();\n        const availW = Math.max(1, target.clientWidth - 2);\n        const availH = Math.max(1, document.documentElement.clientHeight - toolbarExtra - 2);\n        const k = Math.min(scale, availW / rect.width, availH / rect.height);\n        svgEl.removeAttribute(\"width\");\n        svgEl.removeAttribute(\"height\");\n        svgEl.style.display = \"block\";\n        svgEl.style.width = `${Math.floor(rect.width * k)}px`;\n        svgEl.style.height = `${Math.floor(rect.height * k)}px`;\n      } else if (scale !== 1) {\n        const rect = svgEl.getBoundingClientRect();\n        svgEl.removeAttribute(\"width\");\n        svgEl.removeAttribute(\"height\");\n        svgEl.style.display = \"block\";\n        svgEl.style.width = `${Math.ceil(rect.width * scale)}px`;\n        svgEl.style.height = `${Math.ceil(rect.height * scale)}px`;\n      }\n    }\n    if (toolbarEl) {\n      const format = \"svg\";\n      const mime = format === \"svg\" ? \"image/svg+xml;charset=utf-8\" : \"text/plain;charset=utf-8\";\n      const filename = `graph.${format}`;\n      const checkIcon = \"<svg viewBox=\\\"0 0 24 24\\\" width=\\\"14\\\" height=\\\"14\\\" fill=\\\"none\\\" stroke=\\\"currentColor\\\" stroke-width=\\\"2.4\\\" stroke-linecap=\\\"round\\\" stroke-linejoin=\\\"round\\\" aria-hidden=\\\"true\\\"><polyline points=\\\"20 6 9 17 4 12\\\"/><\\/svg>\";\n      const flash = (btn, state) => {\n        const original = btn.dataset.originalIcon ||= btn.innerHTML;\n        btn.classList.remove(\"is-success\", \"is-error\");\n        btn.classList.add(state === \"error\" ? \"is-error\" : \"is-success\");\n        if (state !== \"error\") {\n          btn.innerHTML = checkIcon;\n        }\n        clearTimeout(btn.dataset.flashTimer);\n        btn.dataset.flashTimer = setTimeout(() => {\n          btn.innerHTML = btn.dataset.originalIcon;\n          btn.classList.remove(\"is-success\", \"is-error\");\n        }, 1100);\n      };\n      const copyBtn = toolbarEl.querySelector(\"[data-easydot-copy]\");\n      const downloadBtn = toolbarEl.querySelector(\"[data-easydot-download]\");\n      if (copyBtn) {\n        copyBtn.addEventListener(\"click\", async () => {\n          try {\n            await navigator.clipboard.writeText(svg);\n            flash(copyBtn, \"success\");\n          } catch (_err) {\n            flash(copyBtn, \"error\");\n          }\n        });\n      }\n      if (downloadBtn) {\n        downloadBtn.addEventListener(\"click\", () => {\n          try {\n            const blob = new Blob([svg], { type: mime });\n            const url = URL.createObjectURL(blob);\n            const anchor = document.createElement(\"a\");\n            anchor.href = url;\n            anchor.download = filename;\n            document.body.appendChild(anchor);\n            anchor.click();\n            anchor.remove();\n            setTimeout(() => URL.revokeObjectURL(url), 0);\n            flash(downloadBtn, \"success\");\n          } catch (_err) {\n            flash(downloadBtn, \"error\");\n          }\n        });\n      }\n    }\n    if (!skipFrameResize) {\n      resizeFrameToContent();\n      requestAnimationFrame(resizeFrameToContent);\n      setTimeout(resizeFrameToContent, 50);\n    }\n  } catch (error) {\n    target.innerHTML = \"<pre style='white-space:pre-wrap;color:#b00020'>Graph rendering failed: \"\n      + String(error) + \"</pre>\";\n    resizeFrameToContent();\n  }\n})();\n</script>\n"
+            "text/markdown": "<span class=\"markdown prose dark:prose-invert contents\"><h2 id=\"8-non-iframe-mode\">8. Non-iframe mode</h2>\n<span class=\"paragraph\">Passing <code>iframe=False</code> skips the iframe wrapper. That is useful when\nembedding into a page that already provides layout and executes script\ntags.</span>\n<span class=\"paragraph\">Marimo does not execute scripts from plain HTML outputs, so this mode is\nnot rendered in this demo:</span>\n<div class=\"language-python codehilite\"><pre><span></span><code><span class=\"n\">easydot</span><span class=\"o\">.</span><span class=\"n\">display</span><span class=\"p\">(</span><span class=\"n\">tree_dot</span><span class=\"p\">,</span> <span class=\"n\">iframe</span><span class=\"o\">=</span><span class=\"kc\">False</span><span class=\"p\">)</span>\n</code></pre></div></span>"
           }
         }
       ],

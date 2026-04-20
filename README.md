@@ -51,6 +51,22 @@ easydot.display("digraph { A -> B }", source="cdn")    # CDN only
 
 `easydot` works with [marimo](https://marimo.io) out of the box. It detects marimo and uses its iframe display helper automatically, since marimo doesn't execute arbitrary inline scripts from plain `text/html` outputs. All source modes work.
 
+Because of that script policy, `iframe=False` is not a marimo rendering mode. Use it only when embedding the generated HTML somewhere that already provides layout and executes script tags.
+
+To inspect the bundled demo notebook from a checkout:
+
+```bash
+uv run marimo edit examples/demo.py
+```
+
+For a read-only local preview:
+
+```bash
+uv run marimo run examples/demo.py --headless --host 127.0.0.1 --port 2718 --no-token
+```
+
+Then open <http://localhost:2718>.
+
 ## Library Integration
 
 For libraries that generate their own HTML, use the lower-level asset API:

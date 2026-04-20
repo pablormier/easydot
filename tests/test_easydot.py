@@ -93,6 +93,7 @@ def test_display_publishes_html_in_ipython(monkeypatch):
     html, raw = published[0]
     assert raw is True
     assert "<iframe" in html
+    assert "width='100%' frameborder='0'" in html
     assert "digraph { A -> B }" not in html
 
 
@@ -111,7 +112,7 @@ def test_html_fit_true_enables_both_mode():
     assert "availW / rect.width" in rendered
     assert "availH / rect.height" in rendered
     assert "skipFrameResize = true" in rendered
-    assert "height:100vh;overflow:hidden;box-sizing:border-box" in rendered
+    assert "height:100%;overflow:hidden;box-sizing:border-box" in rendered
     assert "svgEl.style.transform" not in rendered
 
 
@@ -130,7 +131,7 @@ def test_html_fit_vertical_caps_on_viewport_height():
     assert 'const fit = "vertical";' in rendered
     assert "documentElement.clientHeight" in rendered
     assert "skipFrameResize = true" in rendered
-    assert "height:100vh;overflow-x:auto;overflow-y:hidden;box-sizing:border-box" in rendered
+    assert "height:100%;overflow-x:auto;overflow-y:hidden;box-sizing:border-box" in rendered
 
 
 def test_html_rejects_unknown_fit_value():
@@ -217,16 +218,60 @@ def test_display_iframe_false_skips_iframe_wrapping(monkeypatch):
     assert "<iframe" not in html
 
 
-def test_display_mime_uses_marimo_iframe(monkeypatch):
+def test_display_mime_uses_marimo_iframe_without_default_height(monkeypatch):
     expected = '<iframe srcdoc="<p>ok</p>"></iframe>'
+    iframe_calls = []
 
     class _Frame:
         def _mime_(self):
             return "text/html", expected
 
-    _install_fake_marimo(monkeypatch, lambda *_args, **_kwargs: _Frame())
+    def iframe_impl(*_args, **kwargs):
+        iframe_calls.append(kwargs)
+        return _Frame()
+
+    _install_fake_marimo(monkeypatch, iframe_impl)
 
     mime, payload = easydot.display("digraph { A -> B }", source="cdn")._mime_()
 
     assert mime == "text/html"
     assert payload == expected
+    assert iframe_calls == [{}]
+
+
+def test_display_fit_modes_do_not_force_iframe_height(monkeypatch):
+    iframe_calls = []
+
+    class _Frame:
+        def _mime_(self):
+            return "text/html", "<iframe></iframe>"
+
+    def iframe_impl(*_args, **kwargs):
+        iframe_calls.append(kwargs)
+        return _Frame()
+
+    _install_fake_marimo(monkeypatch, iframe_impl)
+
+    for fit in ("vertical", True):
+        easydot.display("digraph { A -> B }", source="cdn", fit=fit)._mime_()
+
+    assert iframe_calls == [{}, {}]
+
+
+def test_display_explicit_iframe_height_is_forwarded(monkeypatch):
+    iframe_calls = []
+
+    class _Frame:
+        def _mime_(self):
+            return "text/html", "<iframe></iframe>"
+
+    def iframe_impl(*_args, **kwargs):
+        iframe_calls.append(kwargs)
+        return _Frame()
+
+    _install_fake_marimo(monkeypatch, iframe_impl)
+
+    obj = easydot.display("digraph { A -> B }", source="cdn", iframe_height="320px")
+    obj._mime_()
+
+    assert iframe_calls == [{"height": "320px"}]

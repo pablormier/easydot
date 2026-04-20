@@ -3,6 +3,10 @@
 - Keep changes minimal and scoped.
 - Always use `uv` for Python testing and running commands.
 - Run `uv run pytest` before finishing code changes when possible.
+- Use `uv run marimo check examples/demo.py` to validate the demo notebook.
+- Use `uv run marimo edit examples/demo.py` to debug the demo interactively.
+- For a read-only local preview, use:
+  `uv run marimo run examples/demo.py --headless --host 127.0.0.1 --port 2718 --no-token`
 - `pyproject.toml` is the package version source of truth; `__version__` is derived from it.
 - `UPSTREAM_VERSION` is only for the vendored Graphviz WASM dependency.
 - Keep the library minimal. Prefer fail-fast behavior over defensive swallowing of errors.

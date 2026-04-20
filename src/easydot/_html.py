@@ -23,7 +23,6 @@ def _js_literal(value: object) -> str:
 
 
 _FIT_MODES = ("none", "horizontal", "vertical", "both")
-_DEFAULT_IFRAME_HEIGHT = "220px"
 
 
 def _normalize_fit(value: bool | str) -> str:
@@ -137,16 +136,9 @@ def html(
     toolbar_markup = ""
     svg_install_js = "target.innerHTML = svg;"
     toolbar_setup_js = ""
-    resize_toolbar_js = ""
-    resize_toolbar_extra = "0"
     fit_toolbar_query = "null"
     if toolbar:
         fit_toolbar_query = "target.querySelector(':scope > [data-easydot-toolbar]')"
-        resize_toolbar_js = (
-            "\n      const toolbarEl = target.querySelector(':scope > [data-easydot-toolbar]');"
-            "\n      const toolbarExtra = toolbarEl ? Math.ceil(toolbarEl.getBoundingClientRect().height) : 0;"
-        )
-        resize_toolbar_extra = "toolbarExtra"
         toolbar_markup = (
             f"<style>{_toolbar_stylesheet(attr_id)}</style>"
             '<div class="easydot-toolbar" data-easydot-toolbar>'
@@ -344,7 +336,7 @@ class DotDisplay:
         self.dot = dot
         self.engine = engine
         self.format = format
-        self.iframe_height = iframe_height if iframe_height is not None else _DEFAULT_IFRAME_HEIGHT
+        self.iframe_height = iframe_height
         self.source = source
         self.fit = fit
         self.scale = scale
@@ -364,7 +356,8 @@ class DotDisplay:
 
     def _iframe_html(self) -> str:
         escaped = html_lib.escape(self._body_html(), quote=True)
-        return f"<iframe srcdoc='{escaped}' width='100%' height='{self.iframe_height}' frameborder='0'></iframe>"
+        height_attr = "" if self.iframe_height is None else f" height='{html_lib.escape(self.iframe_height, quote=True)}'"
+        return f"<iframe srcdoc='{escaped}' width='100%'{height_attr} frameborder='0'></iframe>"
 
     def _mime_(self) -> tuple[str, str]:
         if not self.iframe:
@@ -376,7 +369,8 @@ class DotDisplay:
             iframe = None
 
         if iframe is not None:
-            frame = iframe(self._body_html(), height=self.iframe_height)
+            kwargs = {} if self.iframe_height is None else {"height": self.iframe_height}
+            frame = iframe(self._body_html(), **kwargs)
             frame_mime = getattr(frame, "_mime_", None)
             if callable(frame_mime):
                 mime_type, payload = frame_mime()
