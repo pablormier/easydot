@@ -9,10 +9,16 @@ import os
 import sys
 import uuid
 from importlib.resources import files
+from typing import Protocol
 
 from easydot._icons import CHECK_ICON, COPY_ICON, DOWNLOAD_ICON
 from easydot._version import UPSTREAM_PACKAGE, UPSTREAM_VERSION
 from easydot._server import asset_urls
+
+
+class DotSource(Protocol):
+    def to_string(self) -> str: ...
+
 
 DEFAULT_CDN_URL = f"https://cdn.jsdelivr.net/npm/{UPSTREAM_PACKAGE}@{UPSTREAM_VERSION}/dist/index.min.js"
 SOURCE_ENV_VAR = "EASYDOT_SOURCE"
@@ -23,6 +29,18 @@ _RENDER_TEMPLATE = files(_ASSET_PACKAGE).joinpath("render.js").read_text(encodin
 
 def _b64_text(value: str) -> str:
     return base64.b64encode(value.encode("utf-8")).decode("ascii")
+
+
+def _dot_text(dot: str | DotSource) -> str:
+    if isinstance(dot, str):
+        return dot
+    to_string = getattr(dot, "to_string", None)
+    if not callable(to_string):
+        raise TypeError("dot must be a DOT string or an object with a to_string() method")
+    value = to_string()
+    if not isinstance(value, str):
+        raise TypeError("dot.to_string() must return a string")
+    return value
 
 
 def _js_literal(value: object) -> str:
@@ -107,7 +125,7 @@ def _render_script(replacements: dict[str, str]) -> str:
 
 
 def html(
-    dot: str,
+    dot: str | DotSource,
     *,
     engine: str = "dot",
     format: str = "svg",
@@ -122,6 +140,7 @@ def html(
     if container_id is None:
         container_id = f"easydot-{uuid.uuid4().hex}"
 
+    dot = _dot_text(dot)
     fit_mode = _normalize_fit(fit)
     dot_b64 = _b64_text(dot)
     module_urls = _js_literal(_module_urls(source))
@@ -242,7 +261,7 @@ class DotDisplay:
 
     def __init__(
         self,
-        dot: str,
+        dot: str | DotSource,
         *,
         engine: str = "dot",
         format: str = "svg",
@@ -253,7 +272,7 @@ class DotDisplay:
         iframe: bool = True,
         toolbar: bool = True,
     ) -> None:
-        self.dot = dot
+        self.dot = _dot_text(dot)
         self.engine = engine
         self.format = format
         self.iframe_height = iframe_height
@@ -335,7 +354,7 @@ class DotDisplay:
 
 
 def display(
-    dot: str,
+    dot: str | DotSource,
     *,
     engine: str = "dot",
     format: str = "svg",

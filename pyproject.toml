@@ -25,6 +25,11 @@ classifiers = [
 [project.scripts]
 easydot = "easydot._cli:main"
 
+[project.optional-dependencies]
+pydot = [
+    "pydot>=4,<5",
+]
+
 [project.urls]
 Homepage = "https://github.com/pablormier/easydot"
 Repository = "https://github.com/pablormier/easydot"

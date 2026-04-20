@@ -31,6 +31,23 @@ easydot.display("digraph { A -> B -> C }")
 
 That's it. The return value has `_repr_html_()` and `_mime_()` methods, so it renders automatically as the last expression in a notebook cell.
 
+`display()` and `html()` also accept pydot graph objects. Install pydot only when
+you need it:
+
+```bash
+uv add "easydot[pydot]"
+```
+
+```python
+import easydot
+import pydot
+
+graph = pydot.Dot("example", graph_type="digraph")
+graph.add_edge(pydot.Edge("A", "B"))
+
+easydot.display(graph)
+```
+
 ## Source Modes
 
 By default, `easydot` tries the local server first and falls back to a pinned CDN URL:

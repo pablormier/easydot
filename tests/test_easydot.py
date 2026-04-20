@@ -43,6 +43,42 @@ def test_html_uses_local_module_url():
     assert "digraph { A -> B }" not in rendered
 
 
+def test_html_accepts_pydot_like_object():
+    class Graph:
+        def to_string(self) -> str:
+            return "digraph { A -> B }"
+
+    rendered = easydot.html(Graph(), source="cdn")
+
+    assert "Graphviz.load" in rendered
+    assert "digraph { A -> B }" not in rendered
+
+
+def test_display_accepts_pydot_like_object():
+    class Graph:
+        def to_string(self) -> str:
+            return "digraph { A -> B }"
+
+    obj = easydot.display(Graph(), source="cdn")
+
+    assert repr(obj) == "digraph { A -> B }"
+    assert "Graphviz.load" in obj._body_html()
+
+
+def test_html_rejects_unsupported_dot_input():
+    with pytest.raises(TypeError, match="DOT string or an object with a to_string"):
+        easydot.html(object(), source="cdn")
+
+
+def test_html_rejects_non_string_to_string_result():
+    class Graph:
+        def to_string(self):
+            return b"digraph { A -> B }"
+
+    with pytest.raises(TypeError, match=r"dot\.to_string\(\) must return a string"):
+        easydot.html(Graph(), source="cdn")
+
+
 def test_html_auto_includes_cdn_fallback_after_local_url():
     rendered = easydot.html("digraph { A -> B }")
 
