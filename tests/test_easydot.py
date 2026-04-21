@@ -186,8 +186,8 @@ def test_html_fit_true_enables_both_mode():
 
     assert 'const fit = "both";' in rendered
     assert "const scale = 1.5;" in rendered
-    assert "availW / rect.width" in rendered
-    assert "availH / rect.height" in rendered
+    assert "availW / naturalW" in rendered
+    assert "availH / naturalH" in rendered
     assert "skipFrameResize = true" in rendered
     assert "height:100%;overflow:hidden;box-sizing:border-box" in rendered
     assert "svgEl.style.transform" not in rendered
@@ -200,6 +200,8 @@ def test_html_fit_horizontal_uses_width_autoscale():
     assert 'svgEl.style.height = "auto"' in rendered
     assert "naturalW * scale" in rendered
     assert "skipFrameResize = false" in rendered
+    assert "requestAnimationFrame(applyLayout)" in rendered
+    assert "if (!skipFrameResize)" in rendered
 
 
 def test_html_fit_vertical_caps_on_viewport_height():
@@ -219,8 +221,8 @@ def test_html_rejects_unknown_fit_value():
 def test_html_scale_without_fit_uses_pixel_sizing():
     rendered = easydot.html("digraph { A -> B }", source="cdn", scale=2.0)
 
-    assert "rect.width * scale" in rendered
-    assert "rect.height * scale" in rendered
+    assert "naturalW * scale" in rendered
+    assert "naturalH * scale" in rendered
     assert "svgEl.style.transform" not in rendered
 
 

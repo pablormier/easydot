@@ -58,12 +58,26 @@
     const fit = __EASYDOT_FIT__;
     const scale = __EASYDOT_SCALE__;
     const skipFrameResize = __EASYDOT_SKIP_FRAME_RESIZE__;
-    const svgEl = target.querySelector(":scope > svg");
-    if (svgEl) {
+
+    const applyFit = () => {
+      const svgEl = target.querySelector(":scope > svg");
+      if (!svgEl) {
+        return;
+      }
       const fitToolbarEl = __EASYDOT_FIT_TOOLBAR_QUERY__;
       const toolbarExtra = fitToolbarEl ? Math.ceil(fitToolbarEl.getBoundingClientRect().height) : 0;
+
+      let naturalW = parseFloat(svgEl.dataset.easydotNaturalW);
+      let naturalH = parseFloat(svgEl.dataset.easydotNaturalH);
+      if (!naturalW || !naturalH) {
+        const rect = svgEl.getBoundingClientRect();
+        naturalW = rect.width;
+        naturalH = rect.height;
+        svgEl.dataset.easydotNaturalW = String(naturalW);
+        svgEl.dataset.easydotNaturalH = String(naturalH);
+      }
+
       if (fit === "horizontal") {
-        const naturalW = svgEl.getBoundingClientRect().width;
         svgEl.removeAttribute("width");
         svgEl.removeAttribute("height");
         svgEl.style.display = "block";
@@ -71,34 +85,48 @@
         svgEl.style.height = "auto";
         svgEl.style.maxWidth = `${Math.ceil(naturalW * scale)}px`;
       } else if (fit === "vertical") {
-        const rect = svgEl.getBoundingClientRect();
         const avail = Math.max(1, document.documentElement.clientHeight - toolbarExtra);
-        const targetH = Math.min(rect.height * scale, avail);
-        const k = rect.height > 0 ? targetH / rect.height : 1;
+        const targetH = Math.min(naturalH * scale, avail);
+        const k = naturalH > 0 ? targetH / naturalH : 1;
         svgEl.removeAttribute("width");
         svgEl.removeAttribute("height");
         svgEl.style.display = "block";
         svgEl.style.height = `${Math.floor(targetH)}px`;
-        svgEl.style.width = `${Math.floor(rect.width * k)}px`;
+        svgEl.style.width = `${Math.floor(naturalW * k)}px`;
       } else if (fit === "both") {
-        const rect = svgEl.getBoundingClientRect();
         const availW = Math.max(1, target.clientWidth);
         const availH = Math.max(1, document.documentElement.clientHeight - toolbarExtra);
-        const k = Math.min(scale, availW / rect.width, availH / rect.height);
+        const k = Math.min(scale, availW / naturalW, availH / naturalH);
         svgEl.removeAttribute("width");
         svgEl.removeAttribute("height");
         svgEl.style.display = "block";
-        svgEl.style.width = `${Math.floor(rect.width * k)}px`;
-        svgEl.style.height = `${Math.floor(rect.height * k)}px`;
+        svgEl.style.width = `${Math.floor(naturalW * k)}px`;
+        svgEl.style.height = `${Math.floor(naturalH * k)}px`;
       } else if (scale !== 1) {
-        const rect = svgEl.getBoundingClientRect();
         svgEl.removeAttribute("width");
         svgEl.removeAttribute("height");
         svgEl.style.display = "block";
-        svgEl.style.width = `${Math.ceil(rect.width * scale)}px`;
-        svgEl.style.height = `${Math.ceil(rect.height * scale)}px`;
+        svgEl.style.width = `${Math.ceil(naturalW * scale)}px`;
+        svgEl.style.height = `${Math.ceil(naturalH * scale)}px`;
       }
-    }
+    };
+
+    const applyLayout = () => {
+      applyFit();
+      if (!skipFrameResize) {
+        resizeFrameToContent();
+      }
+    };
+
+    applyFit();
+    let resizeRaf = null;
+    window.addEventListener("resize", () => {
+      if (resizeRaf) {
+        cancelAnimationFrame(resizeRaf);
+      }
+      resizeRaf = requestAnimationFrame(applyLayout);
+    });
+
     __EASYDOT_TOOLBAR_SETUP_JS__
     if (!skipFrameResize) {
       resizeFrameToContent();
