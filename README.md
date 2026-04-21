@@ -120,6 +120,23 @@ uv run marimo edit examples/demo.py                                   # edit the
 uv run marimo run examples/demo.py --headless --port 2718 --no-token  # read-only preview
 ```
 
+## ⏳ Large Graphs
+
+Browser rendering is asynchronous relative to notebook cell execution: a cell
+can finish before the browser has loaded Graphviz WASM and produced the SVG.
+By default, `easydot` tries to run layout in a Web Worker and shows an in-progress
+indicator while the graph is rendering.
+
+```python
+easydot.display(dot, worker="auto")  # default: try a worker, visibly fall back if unavailable
+easydot.display(dot, worker=True)    # require a worker; no main-thread fallback
+easydot.display(dot, worker=False)   # render on the output iframe's main thread
+```
+
+If worker rendering is unavailable and `worker="auto"` is used, `easydot` shows
+a warning before falling back to main-thread rendering. Large graphs may freeze
+that output iframe until Graphviz finishes in fallback mode.
+
 ## 🔌 Library Integration
 
 For libraries that generate their own HTML, use the lower-level asset API:

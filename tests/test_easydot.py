@@ -181,6 +181,33 @@ def test_html_defaults_omit_fit_and_scale():
     assert "const scale = 1.0;" in rendered
 
 
+def test_html_defaults_to_auto_worker_mode():
+    rendered = easydot.html("digraph { A -> B }", source="cdn")
+
+    assert 'const workerMode = "auto";' in rendered
+    assert "new Worker(url, { type: \"module\" })" in rendered
+    assert "Web Worker unavailable; rendering on main thread." in rendered
+    assert "easydot-spinner" in rendered
+
+
+def test_html_worker_true_requires_worker():
+    rendered = easydot.html("digraph { A -> B }", source="cdn", worker=True)
+
+    assert 'const workerMode = "require";' in rendered
+    assert "Web Worker rendering was required but failed" in rendered
+
+
+def test_html_worker_false_disables_worker():
+    rendered = easydot.html("digraph { A -> B }", source="cdn", worker=False)
+
+    assert 'const workerMode = "disabled";' in rendered
+
+
+def test_html_rejects_unknown_worker_value():
+    with pytest.raises(ValueError, match="worker must be 'auto', True, or False"):
+        easydot.html("digraph { A -> B }", source="cdn", worker="require")
+
+
 def test_html_fit_true_enables_both_mode():
     rendered = easydot.html("digraph { A -> B }", source="cdn", fit=True, scale=1.5)
 
@@ -275,6 +302,13 @@ def test_display_propagates_toolbar_flag():
     default_obj = easydot.display("digraph { A -> B }", source="cdn")
     assert default_obj.toolbar is True
     assert "data-easydot-toolbar" in default_obj._body_html()
+
+
+def test_display_propagates_worker_flag():
+    obj = easydot.display("digraph { A -> B }", source="cdn", worker=True)
+
+    assert obj.worker is True
+    assert 'const workerMode = "require";' in obj._body_html()
 
 
 @pytest.mark.skipif(

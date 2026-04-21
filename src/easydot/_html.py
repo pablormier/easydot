@@ -48,8 +48,6 @@ def _js_literal(value: object) -> str:
 
 
 _FIT_MODES = ("none", "horizontal", "vertical", "both")
-
-
 def _normalize_fit(value: bool | str) -> str:
     if isinstance(value, bool):
         return "both" if value else "none"
@@ -59,6 +57,16 @@ def _normalize_fit(value: bool | str) -> str:
         "fit must be True, False, or one of 'horizontal', 'vertical', 'both', 'none'; "
         f"got {value!r}"
     )
+
+
+def _normalize_worker(value: bool | str) -> str:
+    if value is True:
+        return "require"
+    if value is False:
+        return "disabled"
+    if value == "auto":
+        return "auto"
+    raise ValueError("worker must be 'auto', True, or False")
 
 
 def _normalize_source(source: str) -> str:
@@ -101,6 +109,17 @@ def _layout_stylesheet(attr_id: str) -> str:
     return (
         f"#{attr_id}{{box-sizing:border-box;--easydot-scale:1}}"
         f"#{attr_id} > svg{{display:block}}"
+        f"#{attr_id} .easydot-status{{"
+        "display:inline-flex;align-items:center;gap:8px;padding:8px;"
+        "color:#555;font:13px system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;"
+        "box-sizing:border-box"
+        "}"
+        f"#{attr_id} .easydot-status.is-warning{{color:#8a5a00}}"
+        f"#{attr_id} .easydot-spinner{{"
+        "width:14px;height:14px;border:2px solid #d0d0d0;border-top-color:currentColor;"
+        "border-radius:50%;animation:easydot-spin 800ms linear infinite;box-sizing:border-box"
+        "}"
+        "@keyframes easydot-spin{to{transform:rotate(360deg)}}"
         f"#{attr_id}.easydot-fit-none{{overflow:auto}}"
         f"#{attr_id}.easydot-fit-none.easydot-scaled > svg{{"
         "width:calc(var(--easydot-nat-w) * var(--easydot-scale) * 1px);"
@@ -182,6 +201,7 @@ def html(
     fit: bool | str = False,
     scale: float = 1.0,
     toolbar: bool = True,
+    worker: bool | str = "auto",
 ) -> str:
     """Return browser HTML that renders DOT with the bundled Graphviz WASM module.
 
@@ -207,6 +227,7 @@ def html(
 
     dot = _dot_text(dot)
     fit_mode = _normalize_fit(fit)
+    worker_mode = _normalize_worker(worker)
     dot_b64 = _b64_text(dot)
     module_urls = _js_literal(_module_urls(source))
     safe_engine = _b64_text(engine)
@@ -216,6 +237,7 @@ def html(
     js_fit = _js_literal(fit_mode)
     js_scale = _js_literal(float(scale))
     js_format = _js_literal(format)
+    js_worker_mode = _js_literal(worker_mode)
 
     if fit_mode in ("vertical", "both"):
         body_style = "html,body{margin:0;padding:0;height:100%;overflow:hidden}"
@@ -300,6 +322,7 @@ def html(
             "SVG_INSTALL_JS": svg_install_js,
             "FIT": js_fit,
             "SCALE": js_scale,
+            "WORKER_MODE": js_worker_mode,
             "TOOLBAR_SETUP_JS": toolbar_setup_js,
         }
     )
@@ -328,6 +351,7 @@ class DotDisplay:
         scale: float = 1.0,
         iframe: bool = True,
         toolbar: bool = True,
+        worker: bool | str = "auto",
     ) -> None:
         self.dot = _dot_text(dot)
         self.engine = engine
@@ -338,6 +362,7 @@ class DotDisplay:
         self.scale = scale
         self.iframe = iframe
         self.toolbar = toolbar
+        self.worker = worker
 
     def _body_html(self) -> str:
         return html(
@@ -348,6 +373,7 @@ class DotDisplay:
             fit=self.fit,
             scale=self.scale,
             toolbar=self.toolbar,
+            worker=self.worker,
         )
 
     def _iframe_html(self) -> str:
@@ -421,6 +447,7 @@ def display(
     scale: float = 1.0,
     iframe: bool = True,
     toolbar: bool = True,
+    worker: bool | str = "auto",
 ) -> DotDisplay:
     """Return a rich display object for a DOT graph.
 
@@ -440,4 +467,5 @@ def display(
         scale=scale,
         iframe=iframe,
         toolbar=toolbar,
+        worker=worker,
     )

@@ -7,7 +7,6 @@ app = marimo.App(width="full")
 @app.cell
 def _():
     import marimo as mo
-
     import easydot
 
     return easydot, mo
@@ -16,8 +15,6 @@ def _():
 @app.cell
 def _(mo):
     mo.md(r"""
-    # easydot showcase
-
     Render Graphviz DOT inside browser notebooks without installing Graphviz
     binaries. `easydot` ships the WebAssembly renderer, handles notebook
     display integration, and keeps the output small by loading the renderer
@@ -439,9 +436,70 @@ def _(easydot, mo):
 
 
 @app.cell
+def _(easydot, mo, source_dot):
+    mo.vstack(
+        [
+            mo.md("## 8. Worker rendering"),
+            mo.hstack(
+                [
+                    mo.vstack([mo.md("**`worker='auto'`**"), easydot.display(source_dot, worker="auto", fit=True)]),
+                    mo.vstack([mo.md("**`worker=True`**"), easydot.display(source_dot, worker=True, fit=True)]),
+                    mo.vstack([mo.md("**`worker=False`**"), easydot.display(source_dot, worker=False, fit=True)]),
+                ],
+                wrap=True,
+            ),
+        ]
+    )
+    return
+
+
+@app.cell
+def _():
+    import random
+
+    rng = random.Random(7)
+    node_count = 1000
+    random_edges = {
+        (rng.randrange(node_count), rng.randrange(node_count))
+        for _ in range(2500)
+    }
+    large_edges = "\n".join(
+        f"n{source:04d} -> n{target:04d};"
+        for source, target in sorted(random_edges)
+        if source != target
+    )
+    large_dot = f"""
+    digraph G {{
+      graph [layout=sfdp, bgcolor="transparent", pad=0.20, overlap=false];
+      node [
+        shape=point,
+        fontname="Helvetica",
+        width=0.035,
+        color="#405063"
+      ];
+      edge [color="#8a98aa", arrowsize=0.30];
+      {large_edges}
+    }}
+    """
+    return (large_dot,)
+
+
+@app.cell
+def _(easydot, large_dot, mo):
+    mo.vstack(
+        [
+            mo.md("## 9. Large graph rendering"),
+            mo.md("Random 1000-node graph rendered with `engine='sfdp'` and `worker=True`."),
+            easydot.display(large_dot, engine="sfdp", worker=True, fit=True),
+        ]
+    )
+    return
+
+
+@app.cell
 def _(mo):
     mo.md(r"""
-    ## 8. Non-iframe mode
+    ## 10. Non-iframe mode
 
     Passing `iframe=False` skips the iframe wrapper. That is useful when
     embedding into a page that already provides layout and executes script
