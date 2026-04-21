@@ -20,7 +20,7 @@ Browser notebooks can run JavaScript and WebAssembly, but they can't import arbi
 ## Quick Start
 
 ```bash
-uv add easydot
+pip install easydot
 ```
 
 ```python
@@ -35,7 +35,7 @@ That's it. The return value has `_repr_html_()` and `_mime_()` methods, so it re
 you need it:
 
 ```bash
-uv add "easydot[pydot]"
+pip install easydot[pydot]
 ```
 
 ```python
