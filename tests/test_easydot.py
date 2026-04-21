@@ -186,31 +186,45 @@ def test_html_fit_true_enables_both_mode():
 
     assert 'const fit = "both";' in rendered
     assert "const scale = 1.5;" in rendered
-    assert "availW / naturalW" in rendered
-    assert "availH / naturalH" in rendered
-    assert "skipFrameResize = true" in rendered
-    assert "height:100%;overflow:hidden;box-sizing:border-box" in rendered
+    assert 'class="easydot-fit-both"' in rendered
+    assert ".easydot-fit-both > svg" in rendered
+    assert "aspect-ratio:var(--easydot-nat-w) / var(--easydot-nat-h)" in rendered
+    assert "html,body{margin:0;padding:0;height:100%;overflow:hidden}" in rendered
     assert "svgEl.style.transform" not in rendered
 
 
-def test_html_fit_horizontal_uses_width_autoscale():
+def test_html_fit_horizontal_uses_css_responsiveness():
     rendered = easydot.html("digraph { A -> B }", source="cdn", fit="horizontal", scale=1.5)
 
     assert 'const fit = "horizontal";' in rendered
-    assert 'svgEl.style.height = "auto"' in rendered
-    assert "naturalW * scale" in rendered
-    assert "skipFrameResize = false" in rendered
-    assert "requestAnimationFrame(applyLayout)" in rendered
-    assert "if (!skipFrameResize)" in rendered
+    assert 'class="easydot-fit-horizontal"' in rendered
+    assert ".easydot-fit-horizontal > svg{width:100%;height:auto;" in rendered
+    assert (
+        "max-width:calc(var(--easydot-nat-w) * var(--easydot-scale) * 1px)"
+        in rendered
+    )
+    assert "new ResizeObserver(syncFrameHeight).observe(svgEl)" in rendered
 
 
-def test_html_fit_vertical_caps_on_viewport_height():
+def test_html_fit_vertical_uses_flex_viewport():
     rendered = easydot.html("digraph { A -> B }", source="cdn", fit="vertical")
 
     assert 'const fit = "vertical";' in rendered
-    assert "documentElement.clientHeight" in rendered
-    assert "skipFrameResize = true" in rendered
-    assert "height:100%;overflow-x:auto;overflow-y:hidden;box-sizing:border-box" in rendered
+    assert 'class="easydot-fit-vertical"' in rendered
+    assert ".easydot-fit-vertical{overflow-x:auto;overflow-y:hidden}" in rendered
+    assert "display:flex;flex-direction:column" in rendered
+    assert (
+        "max-height:calc(var(--easydot-nat-h) * var(--easydot-scale) * 1px)"
+        in rendered
+    )
+    assert "html,body{margin:0;padding:0;height:100%;overflow:hidden}" in rendered
+
+
+def test_html_viewport_fits_skip_frame_height_sync():
+    for fit in ("vertical", "both"):
+        rendered = easydot.html("digraph { A -> B }", source="cdn", fit=fit)
+        assert "if (!isViewportFit)" in rendered
+        assert "syncFrameHeight" in rendered
 
 
 def test_html_rejects_unknown_fit_value():
@@ -218,11 +232,18 @@ def test_html_rejects_unknown_fit_value():
         easydot.html("digraph { A -> B }", source="cdn", fit="diagonal")
 
 
-def test_html_scale_without_fit_uses_pixel_sizing():
+def test_html_scale_without_fit_adds_scaled_class_via_js():
     rendered = easydot.html("digraph { A -> B }", source="cdn", scale=2.0)
 
-    assert "naturalW * scale" in rendered
-    assert "naturalH * scale" in rendered
+    assert 'class="easydot-fit-none"' in rendered
+    assert "const scale = 2.0;" in rendered
+    assert 'target.classList.add("easydot-scaled")' in rendered
+    assert ".easydot-fit-none.easydot-scaled > svg" in rendered
+    assert (
+        "width:calc(var(--easydot-nat-w) * var(--easydot-scale) * 1px)"
+        in rendered
+    )
+    assert "svgEl.width && svgEl.width.baseVal" in rendered
     assert "svgEl.style.transform" not in rendered
 
 

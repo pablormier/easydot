@@ -89,6 +89,54 @@ def _module_urls(source: str) -> list[str]:
         return [DEFAULT_CDN_URL]
 
 
+def _layout_stylesheet(attr_id: str) -> str:
+    """CSS that implements the two-axis fit model.
+
+    Width axis: natural*scale (default) or fit-container (horizontal, both).
+    Height axis: natural*scale (default) or fit-viewport (vertical, both).
+    The browser does all the math via calc() + flexbox; JS only sets the
+    --easydot-nat-w/--easydot-nat-h/--easydot-scale custom properties.
+    """
+
+    return (
+        f"#{attr_id}{{box-sizing:border-box;--easydot-scale:1}}"
+        f"#{attr_id} > svg{{display:block}}"
+        f"#{attr_id}.easydot-fit-none{{overflow:auto}}"
+        f"#{attr_id}.easydot-fit-none.easydot-scaled > svg{{"
+        "width:calc(var(--easydot-nat-w) * var(--easydot-scale) * 1px);"
+        "height:calc(var(--easydot-nat-h) * var(--easydot-scale) * 1px);"
+        "}"
+        f"#{attr_id}.easydot-fit-horizontal > svg{{"
+        "width:100%;height:auto;"
+        "max-width:calc(var(--easydot-nat-w) * var(--easydot-scale) * 1px);"
+        "}"
+        f"#{attr_id}.easydot-fit-vertical,"
+        f"#{attr_id}.easydot-fit-both{{"
+        "display:flex;flex-direction:column;align-items:center;"
+        "height:100%;min-height:0"
+        "}"
+        f"#{attr_id}.easydot-fit-vertical > .easydot-toolbar,"
+        f"#{attr_id}.easydot-fit-both > .easydot-toolbar{{"
+        "flex:0 0 auto;align-self:stretch"
+        "}"
+        f"#{attr_id}.easydot-fit-vertical{{overflow-x:auto;overflow-y:hidden}}"
+        f"#{attr_id}.easydot-fit-vertical > svg{{"
+        "flex:1 1 0;min-height:0;"
+        "max-height:calc(var(--easydot-nat-h) * var(--easydot-scale) * 1px);"
+        "aspect-ratio:var(--easydot-nat-w) / var(--easydot-nat-h);"
+        "height:100%;width:auto"
+        "}"
+        f"#{attr_id}.easydot-fit-both{{overflow:hidden}}"
+        f"#{attr_id}.easydot-fit-both > svg{{"
+        "flex:0 1 auto;min-width:0;min-height:0;"
+        "max-width:min(100%,calc(var(--easydot-nat-w) * var(--easydot-scale) * 1px));"
+        "max-height:min(100%,calc(var(--easydot-nat-h) * var(--easydot-scale) * 1px));"
+        "aspect-ratio:var(--easydot-nat-w) / var(--easydot-nat-h);"
+        "width:auto;height:auto"
+        "}"
+    )
+
+
 def _toolbar_stylesheet(attr_id: str) -> str:
     return (
         f"#{attr_id} .easydot-toolbar{{"
@@ -135,7 +183,24 @@ def html(
     scale: float = 1.0,
     toolbar: bool = True,
 ) -> str:
-    """Return browser HTML that renders DOT with the bundled Graphviz WASM module."""
+    """Return browser HTML that renders DOT with the bundled Graphviz WASM module.
+
+    Fit modes choose how the rendered SVG is sized on two independent axes:
+
+    - ``fit=False`` (default): both width and height are the SVG's natural size
+      times ``scale``. The iframe grows to fit the content.
+    - ``fit="horizontal"``: width fits the container (capped at natural*scale),
+      height follows the SVG's aspect ratio. The iframe grows to content.
+    - ``fit="vertical"``: height fits the iframe viewport (capped at
+      natural*scale), width follows aspect ratio. Horizontal scroll if needed.
+    - ``fit=True`` / ``fit="both"``: both axes fit the iframe viewport, aspect
+      preserved.
+
+    Viewport-fit modes (``"vertical"``, ``"both"``) rely on ``100%`` of the
+    iframe height set by the host (marimo/Jupyter/srcdoc). If you embed via
+    :class:`DotDisplay` you can pass ``iframe_height`` to pin that height;
+    otherwise it is inherited from whatever the host gives the iframe.
+    """
 
     if container_id is None:
         container_id = f"easydot-{uuid.uuid4().hex}"
@@ -151,23 +216,17 @@ def html(
     js_fit = _js_literal(fit_mode)
     js_scale = _js_literal(float(scale))
     js_format = _js_literal(format)
-    skip_frame_resize = fit_mode in ("vertical", "both")
-    js_skip_frame_resize = _js_literal(skip_frame_resize)
 
-    body_style = "html,body{margin:0;padding:0}"
-    container_style = "overflow:auto"
-    if fit_mode == "vertical":
+    if fit_mode in ("vertical", "both"):
         body_style = "html,body{margin:0;padding:0;height:100%;overflow:hidden}"
-        container_style = "height:100%;overflow-x:auto;overflow-y:hidden;box-sizing:border-box"
-    elif fit_mode == "both":
-        body_style = "html,body{margin:0;padding:0;height:100%;overflow:hidden}"
-        container_style = "height:100%;overflow:hidden;box-sizing:border-box"
+    else:
+        body_style = "html,body{margin:0;padding:0}"
+    layout_style = _layout_stylesheet(attr_id)
+
     toolbar_markup = ""
     svg_install_js = "target.innerHTML = svg;"
     toolbar_setup_js = ""
-    fit_toolbar_query = "null"
     if toolbar:
-        fit_toolbar_query = "target.querySelector(':scope > [data-easydot-toolbar]')"
         toolbar_markup = (
             f"<style>{_toolbar_stylesheet(attr_id)}</style>"
             '<div class="easydot-toolbar" data-easydot-toolbar>'
@@ -241,15 +300,13 @@ def html(
             "SVG_INSTALL_JS": svg_install_js,
             "FIT": js_fit,
             "SCALE": js_scale,
-            "SKIP_FRAME_RESIZE": js_skip_frame_resize,
-            "FIT_TOOLBAR_QUERY": fit_toolbar_query,
             "TOOLBAR_SETUP_JS": toolbar_setup_js,
         }
     )
 
     return f"""
-<style>{body_style}</style>
-<div id="{attr_id}" style="{container_style}">{toolbar_markup}</div>
+<style>{body_style}{layout_style}</style>
+<div id="{attr_id}" class="easydot-fit-{fit_mode}">{toolbar_markup}</div>
 <script type="module">
 {script}
 </script>
@@ -365,7 +422,13 @@ def display(
     iframe: bool = True,
     toolbar: bool = True,
 ) -> DotDisplay:
-    """Return a rich display object for a DOT graph."""
+    """Return a rich display object for a DOT graph.
+
+    See :func:`html` for the ``fit``/``scale`` contract. ``iframe_height`` sets
+    the wrapping iframe's height attribute; viewport-fit modes (``"vertical"``,
+    ``"both"``) use the iframe height the host provides unless you pass this
+    kwarg to pin it explicitly.
+    """
 
     return DotDisplay(
         dot,
