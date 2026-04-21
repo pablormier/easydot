@@ -2,13 +2,13 @@
 
 # easydot
 
-**Graphviz in the browser, from one line of Python.**
+**Graphviz rendered in the browser, from one line of Python. 100% client-side.**
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-3776ab?logo=python&logoColor=white)](https://www.python.org)
 [![pip install easydot](https://img.shields.io/badge/pip%20install-easydot-blue?logo=pypi&logoColor=white)](https://pypi.org/project/easydot/)
 [![License: BSD-3-Clause](https://img.shields.io/badge/license-BSD--3--Clause-green)](LICENSE)
 [![No Dependencies](https://img.shields.io/badge/dependencies-0-brightgreen)]()
-[![marimo](https://marimo.io/shield.svg)](https://marimo.app/l/z7jlli)
+[![marimo](https://marimo.io/shield.svg)](https://marimo.app/l/939bsu)
 
 </div>
 
@@ -21,6 +21,8 @@ import easydot
 
 easydot.display("digraph { A -> B -> C }")
 ```
+
+<img src="assets/example.png" alt="easydot example" width="800px">
 
 ---
 
