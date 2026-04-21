@@ -5,19 +5,12 @@
 **Graphviz in the browser. Zero installs. One line of Python.**
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-3776ab?logo=python&logoColor=white)](https://www.python.org)
+[![pip install easydot](https://img.shields.io/badge/pip%20install-easydot-blue?logo=pypi&logoColor=white)](https://pypi.org/project/easydot/)
 [![License: BSD-3-Clause](https://img.shields.io/badge/license-BSD--3--Clause-green)](LICENSE)
 [![No Dependencies](https://img.shields.io/badge/dependencies-0-brightgreen)]()
 [![marimo](https://marimo.io/shield.svg)](https://marimo.app/l/z7jlli)
 
 </div>
-
----
-
-Browser notebooks can run JavaScript and WebAssembly, but they can't import arbitrary files from Python `site-packages`. Embedding the full Graphviz WASM bundle in every cell bloats your notebook. Loading from a CDN on every render breaks offline and locked-down environments.
-
-`easydot` takes the middle path: it vendors [Graphviz WASM](https://github.com/hpcc-systems/hpcc-js-wasm), starts a tiny loopback asset server on demand, and lets notebook outputs reference a local URL. Small outputs. No manual setup. Works offline.
-
-## Quick Start
 
 ```bash
 pip install easydot
@@ -29,18 +22,37 @@ import easydot
 easydot.display("digraph { A -> B -> C }")
 ```
 
-That's it. The return value has `_repr_html_()` and `_mime_()` methods, so it renders automatically as the last expression in a notebook cell.
+---
 
-`display()` and `html()` also accept pydot graph objects. Install pydot only when
-you need it:
+## 💡 Why easydot
+
+Graphviz has always required a native `dot` binary. That's fine on a laptop, but painful in CI images, slim containers, shared clusters, and browser runtimes like JupyterLite, Pyodide, or marimo. A plain `pip install` was never enough. `easydot` fixes that.
+
+- **Pip-installable everywhere.** No `brew`, no `conda`, no `apt-get`, no Dockerfile changes.
+- **Browser-native rendering.** Layout runs client-side via [Graphviz WASM](https://github.com/hpcc-systems/hpcc-js-wasm), so it works inside sandboxed kernels and restricted hosts.
+- **Tiny notebook outputs.** The WASM bundle is vendored and served once over loopback instead of inlined into every cell.
+- **Works offline.** Assets ship in the package, with a CDN fallback when loopback isn't reachable.
+- **One-line API.** `easydot.display(...)` auto-renders via `_repr_html_` in any notebook.
+
+## 🔤 Why DOT
+
+DOT is the lingua franca of graph drawing: a tiny text format that's been the default "give me a diagram" target for 30 years.
+
+- **Massive ecosystem.** [NetworkX](https://networkx.org/), [pydot](https://pypi.org/project/pydot/), [pygraphviz](https://pygraphviz.github.io/), [scikit-learn](https://scikit-learn.org) decision trees, [PyTorch](https://pytorch.org) and [TensorFlow](https://www.tensorflow.org) model viz, [Dask](https://www.dask.org/) task graphs, [Airflow](https://airflow.apache.org/) DAGs, Terraform, Bazel, Ninja, `gprof2dot`, and many more all emit DOT.
+- **LLM-friendly.** Modern models are fluent in DOT. Ask one to sketch an architecture diagram, state machine, or dependency graph and you get renderable output.
+- **Plain text.** Diffs cleanly, templates easily, pipes nicely.
+- **Batteries included.** Five layout engines (`dot`, `neato`, `fdp`, `circo`, `twopi`), clusters, HTML-like labels, rich styling.
+
+## 🚀 Usage
+
+### pydot
 
 ```bash
 pip install easydot[pydot]
 ```
 
 ```python
-import easydot
-import pydot
+import easydot, pydot
 
 graph = pydot.Dot("example", graph_type="digraph")
 graph.add_edge(pydot.Edge("A", "B"))
@@ -48,68 +60,67 @@ graph.add_edge(pydot.Edge("A", "B"))
 easydot.display(graph)
 ```
 
-## Source Modes
-
-By default, `easydot` tries the local server first and falls back to a pinned CDN URL:
+### NetworkX
 
 ```python
-easydot.display("digraph { A -> B }", source="auto")   # default
-easydot.display("digraph { A -> B }", source="local")  # local only
-easydot.display("digraph { A -> B }", source="cdn")    # CDN only
+import easydot, networkx as nx
+from networkx.drawing.nx_pydot import to_pydot
+
+G = nx.DiGraph([("A", "B"), ("B", "C"), ("A", "C")])
+easydot.display(to_pydot(G))
 ```
 
-| Mode | Local server | CDN fallback | Best for |
-|-------|:---:|:---:|---|
-| `auto` | yes | yes | Most setups |
-| `local` | yes | no | Air-gapped / offline environments |
-| `cdn` | no | yes | Remote hosts where `127.0.0.1` isn't reachable from the browser |
+### CLI
 
-To change the notebook-wide default without editing every display call, set
-`EASYDOT_SOURCE` before rendering any graphs:
+```bash
+echo 'digraph { A -> B }' | easydot     # render DOT to HTML on stdout
+easydot --urls                          # print local asset server URLs
+```
+
+## 🔀 Source Modes
+
+By default, `easydot` tries the local server first and falls back to a pinned CDN URL.
+
+| Mode    | Local | CDN | Best for                                               |
+| ------- | :---: | :-: | ------------------------------------------------------ |
+| `auto`  |  yes  | yes | Most setups (default)                                  |
+| `local` |  yes  | no  | Offline environments with no internet access           |
+| `cdn`   |  no   | yes | Remote hosts where `127.0.0.1` isn't browser-reachable |
+
+```python
+easydot.display("digraph { A -> B }", source="cdn")
+```
+
+<details>
+<summary><b>Environment variables</b></summary>
+
+Set a notebook-wide default without editing every call:
 
 ```python
 import os
-
-os.environ["EASYDOT_SOURCE"] = "cdn"
+os.environ["EASYDOT_SOURCE"] = "cdn"   # auto | local | cdn
 ```
 
-The environment variable accepts `auto`, `local`, or `cdn`. It only applies
-when `source="auto"` is used, so explicit `source="local"` and `source="cdn"`
-calls still win.
+Only applies when `source="auto"`. Explicit `source=` arguments still win.
 
-Some hosted marimo environments protect marimo's generated iframe file URLs.
-If CDN mode still shows an authorization error, force a self-contained iframe:
+For hosted marimo environments that protect generated iframe file URLs, force a self-contained iframe:
 
 ```python
-import os
-
-os.environ["EASYDOT_SOURCE"] = "cdn"
-os.environ["EASYDOT_IFRAME_MODE"] = "srcdoc"
+os.environ["EASYDOT_IFRAME_MODE"] = "srcdoc"   # auto | marimo | srcdoc
 ```
 
-`EASYDOT_IFRAME_MODE` accepts `auto`, `marimo`, or `srcdoc`.
+</details>
 
-## marimo Support
+## 📓 marimo
 
-`easydot` works with [marimo](https://marimo.io) out of the box. It detects marimo and uses its iframe display helper automatically, since marimo doesn't execute arbitrary inline scripts from plain `text/html` outputs. All source modes work.
-
-Because of that script policy, `iframe=False` is not a marimo rendering mode. Use it only when embedding the generated HTML somewhere that already provides layout and executes script tags.
-
-To inspect the bundled demo notebook from a checkout:
+Works out of the box. `easydot` detects marimo and uses its iframe display helper automatically, since marimo doesn't execute inline scripts from plain `text/html` outputs. All source modes work.
 
 ```bash
-uv run marimo edit examples/demo.py
+uv run marimo edit examples/demo.py                                   # edit the demo
+uv run marimo run examples/demo.py --headless --port 2718 --no-token  # read-only preview
 ```
 
-For a read-only local preview:
-
-```bash
-uv run marimo run examples/demo.py --headless --host 127.0.0.1 --port 2718 --no-token
-```
-
-Then open <http://localhost:2718>.
-
-## Library Integration
+## 🔌 Library Integration
 
 For libraries that generate their own HTML, use the lower-level asset API:
 
@@ -119,47 +130,30 @@ from easydot import asset_urls
 js_url = asset_urls()["js"]
 ```
 
-Then in your browser-side code:
-
 ```js
 const mod = await import(jsUrl);
 const graphviz = await mod.Graphviz.load();
 const svg = graphviz.layout("digraph { A -> B }", "svg", "dot");
 ```
 
-## CLI
+> Need server-side rendering to files? Use native Graphviz or the [`graphviz`](https://pypi.org/project/graphviz/) Python package. `easydot` is browser-only by design.
 
-`easydot` ships a small command-line tool:
-
-```bash
-# Render DOT to HTML on stdout
-echo 'digraph { A -> B }' | easydot
-
-# Print local asset server URLs
-easydot --urls
-```
-
-## Runtime Model
+<details>
+<summary><b>Runtime model</b></summary>
 
 The asset server is intentionally narrow:
 
 - Binds only to `127.0.0.1`
-- Uses an OS-assigned ephemeral port
+- OS-assigned ephemeral port
 - Serves only known packaged files (no directory browsing)
-- Sets long-lived cache headers
+- Long-lived cache headers
 - Shuts down automatically when the Python process exits
 
-## What easydot Is Not
+</details>
 
-`easydot` does **not** call the system `dot` executable. All rendering happens client-side through WebAssembly. For server-side rendering to files, native Graphviz or the [`graphviz`](https://pypi.org/project/graphviz/) Python package may be a better fit.
+## 📜 License
 
-## Licensing
-
-The Python code is licensed under [BSD-3-Clause](LICENSE).
-
-The vendored browser module (`src/easydot/assets/index.js`) comes from [`@hpcc-js/wasm-graphviz`](https://www.npmjs.com/package/@hpcc-js/wasm-graphviz), licensed under Apache-2.0. The upstream license is included at `src/easydot/assets/LICENSE.hpcc-js-wasm`; the pinned version lives in `src/easydot/_version.py`.
-
-| Component | License |
-|---|---|
-| `easydot` Python code | BSD-3-Clause |
-| Vendored Graphviz WASM | Apache-2.0 |
+| Component              | License                                                                                                                                      |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `easydot` Python code  | [BSD-3-Clause](LICENSE)                                                                                                                      |
+| Vendored Graphviz WASM | Apache-2.0, from [`@hpcc-js/wasm-graphviz`](https://www.npmjs.com/package/@hpcc-js/wasm-graphviz). Pinned version in `src/easydot/_version.py` |
