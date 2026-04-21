@@ -2,7 +2,7 @@
 
 # easydot
 
-**Graphviz in the browser. Zero installs. One line of Python.**
+**Graphviz in the browser, from one line of Python.**
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-3776ab?logo=python&logoColor=white)](https://www.python.org)
 [![pip install easydot](https://img.shields.io/badge/pip%20install-easydot-blue?logo=pypi&logoColor=white)](https://pypi.org/project/easydot/)
@@ -26,22 +26,22 @@ easydot.display("digraph { A -> B -> C }")
 
 ## 💡 Why easydot
 
-Graphviz has always required a native `dot` binary. That's fine on a laptop, but painful in CI images, slim containers, shared clusters, and browser runtimes like JupyterLite, Pyodide, or marimo. A plain `pip install` was never enough. `easydot` fixes that.
+Graphviz usually requires a native `dot` binary. That's fine on a laptop, but painful in CI images, slim containers, shared clusters, and browser runtimes like JupyterLite, Pyodide, or marimo. `easydot` packages browser rendering so `pip install easydot` is enough for notebooks.
 
-- **Pip-installable everywhere.** No `brew`, no `conda`, no `apt-get`, no Dockerfile changes.
-- **Browser-native rendering.** Layout runs client-side via [Graphviz WASM](https://github.com/hpcc-systems/hpcc-js-wasm), so it works inside sandboxed kernels and restricted hosts.
+- **Pip-installable.** No `brew`, no `conda`, no `apt-get`, no Dockerfile changes.
+- **Browser rendering.** Layout runs client-side via [Graphviz WASM](https://github.com/hpcc-systems/hpcc-js-wasm), so it works inside sandboxed kernels and restricted hosts.
 - **Tiny notebook outputs.** The WASM bundle is vendored and served once over loopback instead of inlined into every cell.
 - **Works offline.** Assets ship in the package, with a CDN fallback when loopback isn't reachable.
-- **One-line API.** `easydot.display(...)` auto-renders via `_repr_html_` in any notebook.
+- **Small API.** `easydot.display(...)` renders via `_repr_html_` in notebooks.
 
 ## 🔤 Why DOT
 
-DOT is the lingua franca of graph drawing: a tiny text format that's been the default "give me a diagram" target for 30 years.
+DOT is a small text format for graph diagrams. Many Python libraries and build tools can generate it.
 
-- **Massive ecosystem.** [NetworkX](https://networkx.org/), [pydot](https://pypi.org/project/pydot/), [pygraphviz](https://pygraphviz.github.io/), [scikit-learn](https://scikit-learn.org) decision trees, [PyTorch](https://pytorch.org) and [TensorFlow](https://www.tensorflow.org) model viz, [Dask](https://www.dask.org/) task graphs, [Airflow](https://airflow.apache.org/) DAGs, Terraform, Bazel, Ninja, `gprof2dot`, and many more all emit DOT.
-- **LLM-friendly.** Modern models are fluent in DOT. Ask one to sketch an architecture diagram, state machine, or dependency graph and you get renderable output.
+- **Common output format.** [NetworkX](https://networkx.org/), [pydot](https://pypi.org/project/pydot/), [pygraphviz](https://pygraphviz.github.io/), [scikit-learn](https://scikit-learn.org) decision trees, [PyTorch](https://pytorch.org) and [TensorFlow](https://www.tensorflow.org) model viz, [Dask](https://www.dask.org/) task graphs, [Airflow](https://airflow.apache.org/) DAGs, Terraform, Bazel, Ninja, `gprof2dot`, and other tools can emit DOT.
+- **LLM-friendly.** Models can usually generate DOT for architecture diagrams, state machines, and dependency graphs.
 - **Plain text.** Diffs cleanly, templates easily, pipes nicely.
-- **Batteries included.** Five layout engines (`dot`, `neato`, `fdp`, `circo`, `twopi`), clusters, HTML-like labels, rich styling.
+- **Graphviz features.** Five layout engines (`dot`, `neato`, `fdp`, `circo`, `twopi`), clusters, HTML-like labels, and styling.
 
 ## 🚀 Usage
 
