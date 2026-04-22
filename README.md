@@ -35,7 +35,7 @@ Graphviz usually requires a native `dot` binary. That's fine on a laptop, but pa
 - **Pip-installable.** No `brew`, no `conda`, no `apt-get`, no Dockerfile changes.
 - **Browser rendering.** Layout runs client-side via [Graphviz WASM](https://github.com/hpcc-systems/hpcc-js-wasm), so it works inside sandboxed kernels and restricted hosts.
 - **Tiny notebook outputs.** The WASM bundle is vendored and served once over loopback instead of inlined into every cell.
-- **Works offline.** Assets ship in the package, with a CDN fallback when loopback isn't reachable.
+- **Works offline.** Assets ship in the package, with a local fallback when the CDN isn't reachable.
 - **Small API.** `easydot.display(...)` renders via `_repr_html_` in notebooks.
 
 ## 🔤 Why DOT
@@ -83,11 +83,11 @@ easydot --urls                          # print local asset server URLs
 
 ## 🔀 Source Modes
 
-By default, `easydot` tries the local server first and falls back to a pinned CDN URL.
+By default, `easydot` tries a pinned CDN URL first and falls back to the local server.
 
 | Mode    | Local | CDN | Best for                                               |
 | ------- | :---: | :-: | ------------------------------------------------------ |
-| `auto`  |  yes  | yes | Most setups (default)                                  |
+| `auto`  |  yes  | yes | Most setups (default; CDN first, then local fallback)  |
 | `local` |  yes  | no  | Offline environments with no internet access           |
 | `cdn`   |  no   | yes | Remote hosts where `127.0.0.1` isn't browser-reachable |
 
@@ -128,13 +128,14 @@ uv run marimo run examples/demo.py --headless --port 2718 --no-token  # read-onl
 
 Browser rendering is asynchronous relative to notebook cell execution: a cell
 can finish before the browser has loaded Graphviz WASM and produced the SVG.
-By default, `easydot` tries to run layout in a Web Worker and shows an in-progress
-indicator while the graph is rendering.
+By default, `easydot` renders on the output iframe's main thread and shows an
+in-progress indicator while the graph is rendering. You can opt into Web Worker
+rendering for large graphs.
 
 ```python
-easydot.display(dot, worker="auto")  # default: try a worker, visibly fall back if unavailable
+easydot.display(dot, worker=False)   # default: render on the output iframe's main thread
+easydot.display(dot, worker="auto")  # try a worker, visibly fall back if unavailable
 easydot.display(dot, worker=True)    # require a worker; no main-thread fallback
-easydot.display(dot, worker=False)   # render on the output iframe's main thread
 ```
 
 If worker rendering is unavailable and `worker="auto"` is used, `easydot` shows

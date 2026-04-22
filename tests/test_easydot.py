@@ -79,11 +79,12 @@ def test_html_rejects_non_string_to_string_result():
         easydot.html(Graph(), source="cdn")
 
 
-def test_html_auto_includes_cdn_fallback_after_local_url():
+def test_html_auto_includes_local_fallback_after_cdn_url():
     rendered = easydot.html("digraph { A -> B }")
 
     assert "http://127.0.0.1:" in rendered
     assert DEFAULT_CDN_URL in rendered
+    assert rendered.index(DEFAULT_CDN_URL) < rendered.index("http://127.0.0.1:")
     assert "for (const url of moduleUrls)" in rendered
 
 
@@ -181,13 +182,19 @@ def test_html_defaults_omit_fit_and_scale():
     assert "const scale = 1.0;" in rendered
 
 
-def test_html_defaults_to_auto_worker_mode():
+def test_html_defaults_to_disabled_worker_mode():
     rendered = easydot.html("digraph { A -> B }", source="cdn")
+
+    assert 'const workerMode = "disabled";' in rendered
+    assert "easydot-spinner" in rendered
+
+
+def test_html_worker_auto_tries_worker_with_fallback():
+    rendered = easydot.html("digraph { A -> B }", source="cdn", worker="auto")
 
     assert 'const workerMode = "auto";' in rendered
     assert "new Worker(url, { type: \"module\" })" in rendered
     assert "Web Worker unavailable; rendering on main thread." in rendered
-    assert "easydot-spinner" in rendered
 
 
 def test_html_worker_true_requires_worker():

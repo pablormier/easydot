@@ -442,9 +442,9 @@ def _(easydot, mo, source_dot):
             mo.md("## 8. Worker rendering"),
             mo.hstack(
                 [
+                    mo.vstack([mo.md("**default (`worker=False`)**"), easydot.display(source_dot, fit=True)]),
                     mo.vstack([mo.md("**`worker='auto'`**"), easydot.display(source_dot, worker="auto", fit=True)]),
                     mo.vstack([mo.md("**`worker=True`**"), easydot.display(source_dot, worker=True, fit=True)]),
-                    mo.vstack([mo.md("**`worker=False`**"), easydot.display(source_dot, worker=False, fit=True)]),
                 ],
                 wrap=True,
             ),

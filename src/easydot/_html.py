@@ -92,7 +92,7 @@ def _module_urls(source: str) -> list[str]:
         return [asset_urls()["js"]]
 
     try:
-        return [asset_urls()["js"], DEFAULT_CDN_URL]
+        return [DEFAULT_CDN_URL, asset_urls()["js"]]
     except OSError:
         return [DEFAULT_CDN_URL]
 
@@ -201,7 +201,7 @@ def html(
     fit: bool | str = False,
     scale: float = 1.0,
     toolbar: bool = True,
-    worker: bool | str = "auto",
+    worker: bool | str = False,
 ) -> str:
     """Return browser HTML that renders DOT with the bundled Graphviz WASM module.
 
@@ -351,7 +351,7 @@ class DotDisplay:
         scale: float = 1.0,
         iframe: bool = True,
         toolbar: bool = True,
-        worker: bool | str = "auto",
+        worker: bool | str = False,
     ) -> None:
         self.dot = _dot_text(dot)
         self.engine = engine
@@ -447,7 +447,7 @@ def display(
     scale: float = 1.0,
     iframe: bool = True,
     toolbar: bool = True,
-    worker: bool | str = "auto",
+    worker: bool | str = False,
 ) -> DotDisplay:
     """Return a rich display object for a DOT graph.
 
