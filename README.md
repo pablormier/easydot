@@ -22,6 +22,8 @@ import easydot
 easydot.display("digraph { A -> B -> C }")
 ```
 
+## Example
+
 <img src="assets/example.png" alt="easydot example" width="800px">
 
 ---
