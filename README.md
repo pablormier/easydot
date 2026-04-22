@@ -1,6 +1,6 @@
 <div align="center">
 
-# easydot
+<img src="assets/easydot-logo.png" alt="easydot" width="300">
 
 **Graphviz rendered in the browser, from one line of Python. 100% client-side.**
 
