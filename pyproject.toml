@@ -1,6 +1,6 @@
 [project]
 name = "easydot"
-version = "0.1.14"
+version = "0.1.15"
 description = "Tiny browser-side Graphviz DOT rendering helpers for notebooks and web views"
 authors = [
     { name = "Pablo Rodriguez Mier", email = "pablo.rodriguez.mier@gmail.com" }
@@ -37,6 +37,8 @@ Issues = "https://github.com/pablormier/easydot/issues"
 
 [dependency-groups]
 dev = [
+    "ipykernel>=6.29,<7",
+    "nbformat>=5.10,<6",
     "pytest>=8.3,<9",
     "marimo>=0.9",
 ]

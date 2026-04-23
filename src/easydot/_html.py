@@ -100,6 +100,15 @@ def _in_pycharm() -> bool:
     return os.environ.get("PYCHARM_HOSTED") == "1"
 
 
+def _in_marimo_runtime() -> bool:
+    try:
+        from marimo._runtime import context
+    except ImportError:
+        return False
+    runtime_context_installed = getattr(context, "runtime_context_installed", None)
+    return bool(callable(runtime_context_installed) and runtime_context_installed())
+
+
 def _module_urls(source: str) -> list[str]:
     source = _normalize_source(source)
     if source == "cdn":
@@ -459,7 +468,10 @@ class DotDisplay:
         if mode == "srcdoc":
             return self._iframe_html(mode="srcdoc")
 
-        if mode == "managed" or mode == "auto":
+        # Keep auto mode scoped to real marimo runtimes. VS Code / IPython can
+        # have marimo importable in the environment while still requiring the
+        # plain srcdoc iframe path that worked before the managed wrapper was added.
+        if mode == "managed" or (mode == "auto" and _in_marimo_runtime()):
             payload = self._managed_iframe_html()
             if payload is not None:
                 return payload
@@ -487,7 +499,11 @@ class DotDisplay:
         display_html(payload, raw=True)
 
     def _repr_html_(self) -> str:
-        return self._html_payload()
+        # Preserve the older IPython/VS Code path here. Their rich display hooks
+        # expect the plain iframe wrapper rather than the broader auto payload logic.
+        if self.iframe and "IPython" in sys.modules:
+            return self._iframe_html()
+        return self._body_html()
 
     def __repr__(self) -> str:
         return self.dot

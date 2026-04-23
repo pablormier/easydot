@@ -19,6 +19,9 @@
 - If Playwright MCP reports an artifact directory error such as trying to create
   `/.playwright-mcp`, continue with DOM/browser checks if the session is usable;
   otherwise report that the MCP output directory needs reconfiguration.
+- In notebook frontends, do not auto-select marimo-specific iframe wrappers
+  unless a marimo runtime is actually active. Preserve IPython/VS Code rich-display
+  behavior unless the change is explicitly validated there.
 - `pyproject.toml` is the package version source of truth; `__version__` is derived from it.
 - `UPSTREAM_VERSION` is only for the vendored Graphviz WASM dependency.
 - Keep the library minimal. Prefer fail-fast behavior over defensive swallowing of errors.

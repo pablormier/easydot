@@ -456,13 +456,12 @@ def test_display_srcdoc_iframe_mode_bypasses_marimo_iframe(monkeypatch):
     assert DEFAULT_CDN_URL in payload
 
 
-def test_display_auto_uses_managed_iframe_when_importable_without_runtime(monkeypatch):
-    expected = '<iframe srcdoc="<p>ok</p>" height="400px"></iframe>'
+def test_display_auto_does_not_use_managed_iframe_without_runtime(monkeypatch):
     iframe_calls = []
 
     class _Frame:
         def _mime_(self):
-            return "text/html", expected
+            return "text/html", '<iframe srcdoc="<p>ok</p>" height="400px"></iframe>'
 
     def iframe_impl(*_args, **kwargs):
         iframe_calls.append(kwargs)
@@ -477,8 +476,10 @@ def test_display_auto_uses_managed_iframe_when_importable_without_runtime(monkey
     mime, payload = easydot.display("digraph { A -> B }", source="cdn")._mime_()
 
     assert mime == "text/html"
-    assert payload == expected
-    assert iframe_calls == [{}]
+    assert "<iframe" in payload
+    assert "srcdoc=" in payload
+    assert "Graphviz.load" in payload
+    assert iframe_calls == []
 
 
 def test_display_auto_iframe_wraps_without_ipython_or_marimo_runtime(monkeypatch):
@@ -598,6 +599,31 @@ def test_display_mime_uses_managed_iframe_without_default_height(monkeypatch):
         return _Frame()
 
     _install_fake_marimo(monkeypatch, iframe_impl)
+
+    mime, payload = easydot.display("digraph { A -> B }", source="cdn")._mime_()
+
+    assert mime == "text/html"
+    assert payload == expected
+    assert iframe_calls == [{}]
+
+
+def test_display_auto_uses_managed_iframe_with_runtime(monkeypatch):
+    expected = '<iframe srcdoc="<p>ok</p>"></iframe>'
+    iframe_calls = []
+
+    class _Frame:
+        def _mime_(self):
+            return "text/html", expected
+
+    def iframe_impl(*_args, **kwargs):
+        iframe_calls.append(kwargs)
+        return _Frame()
+
+    _install_fake_marimo(monkeypatch, iframe_impl)
+
+    from marimo._runtime import context
+
+    context.runtime_context_installed = lambda: True
 
     mime, payload = easydot.display("digraph { A -> B }", source="cdn")._mime_()
 
