@@ -18,8 +18,11 @@
     }
   };
   const nextFrame = () => new Promise((resolve) => requestAnimationFrame(resolve));
+  const showSpinner = __EASYDOT_SHOW_SPINNER__;
   const statusMarkup = (message) =>
-    `<div class="easydot-status" data-easydot-status><span class="easydot-spinner" aria-hidden="true"></span><span data-easydot-status-text>${message}</span></div>`;
+    `<div class="easydot-status" data-easydot-status>${
+      showSpinner ? '<span class="easydot-spinner" aria-hidden="true"></span>' : ""
+    }<span data-easydot-status-text>${message}</span></div>`;
   const showStatus = (message, state = "info") => {
     let status = target.querySelector("[data-easydot-status]");
     if (!status) {
@@ -110,7 +113,7 @@
       showStatus(message, state);
       await nextFrame();
       const graphviz = await loadGraphviz();
-      return graphviz.layout(dot, format, engine);
+      return await graphviz.layout(dot, format, engine);
     };
     const renderInWorker = () =>
       new Promise((resolve, reject) => {

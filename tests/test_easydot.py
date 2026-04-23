@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import importlib.util
+import subprocess
 import sys
+import textwrap
 from types import ModuleType
 from urllib.request import urlopen
 
@@ -191,7 +193,15 @@ def test_html_defaults_to_disabled_worker_mode():
     rendered = easydot.html("digraph { A -> B }", source="cdn")
 
     assert 'const workerMode = "disabled";' in rendered
+    assert "const showSpinner = true;" in rendered
     assert "easydot-spinner" in rendered
+
+
+def test_html_spinner_false_disables_spinner_icon():
+    rendered = easydot.html("digraph { A -> B }", source="cdn", spinner=False)
+
+    assert "const showSpinner = false;" in rendered
+    assert "showSpinner ? '<span class=\"easydot-spinner\"" in rendered
 
 
 def test_html_worker_auto_tries_worker_with_fallback():
@@ -323,23 +333,86 @@ def test_display_propagates_worker_flag():
     assert 'const workerMode = "require";' in obj._body_html()
 
 
+def test_display_propagates_spinner_flag():
+    obj = easydot.display("digraph { A -> B }", source="cdn", spinner=False)
+
+    assert obj.spinner is False
+    assert "const showSpinner = false;" in obj._body_html()
+
+
 @pytest.mark.skipif(
     importlib.util.find_spec("marimo") is None,
     reason="marimo not installed",
 )
-def test_display_mime_integrates_with_real_marimo():
+def test_display_managed_iframe_integrates_with_real_marimo():
     mime, payload = easydot.display(
         "digraph { A -> B }",
         source="cdn",
         fit=True,
         scale=1.25,
-        iframe_mode="marimo",
+        iframe_mode="managed",
     )._mime_()
 
     assert mime == "text/html"
     assert "<iframe" in payload
     assert "srcdoc" in payload
     assert "Graphviz.load" in payload
+
+
+@pytest.mark.skipif(
+    importlib.util.find_spec("marimo") is None,
+    reason="marimo not installed",
+)
+def test_marimo_export_html_contains_easydot_payload(tmp_path):
+    notebook = tmp_path / "marimo_export_smoke.py"
+    output = tmp_path / "marimo_export_smoke.html"
+    notebook.write_text(
+        textwrap.dedent(
+            """
+            import marimo
+
+            app = marimo.App()
+
+            @app.cell
+            def _():
+                import easydot
+                return (easydot,)
+
+            @app.cell
+            def _(easydot):
+                easydot.display("digraph { A -> B }", fit=True, spinner=False)
+                return
+
+            if __name__ == "__main__":
+                app.run()
+            """
+        ).strip()
+        + "\n",
+        encoding="utf-8",
+    )
+
+    subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "marimo",
+            "export",
+            "html",
+            str(notebook),
+            "-o",
+            str(output),
+            "-f",
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    exported = output.read_text(encoding="utf-8")
+    assert "\\u003Ciframe srcdoc=" in exported
+    assert "onload='__resizeIframe(this)'" in exported
+    assert "const showSpinner = false;" in exported
+    assert 'const workerMode = \\u0026quot;disabled\\u0026quot;;' in exported
 
 
 def test_display_iframe_false_skips_iframe_wrapping(monkeypatch):
@@ -375,6 +448,47 @@ def test_display_srcdoc_iframe_mode_bypasses_marimo_iframe(monkeypatch):
     assert "<iframe" in payload
     assert "srcdoc=" in payload
     assert DEFAULT_CDN_URL in payload
+
+
+def test_display_auto_uses_managed_iframe_when_importable_without_runtime(monkeypatch):
+    expected = '<iframe srcdoc="<p>ok</p>" height="400px"></iframe>'
+    iframe_calls = []
+
+    class _Frame:
+        def _mime_(self):
+            return "text/html", expected
+
+    def iframe_impl(*_args, **kwargs):
+        iframe_calls.append(kwargs)
+        return _Frame()
+
+    _install_fake_marimo(monkeypatch, iframe_impl)
+
+    from marimo._runtime import context
+
+    context.runtime_context_installed = lambda: False
+
+    mime, payload = easydot.display("digraph { A -> B }", source="cdn")._mime_()
+
+    assert mime == "text/html"
+    assert payload == expected
+    assert iframe_calls == [{}]
+
+
+def test_display_auto_iframe_wraps_without_ipython_or_marimo_runtime(monkeypatch):
+    monkeypatch.delitem(sys.modules, "IPython", raising=False)
+    monkeypatch.delitem(sys.modules, "marimo", raising=False)
+    monkeypatch.delitem(sys.modules, "marimo._output", raising=False)
+    monkeypatch.delitem(sys.modules, "marimo._output.formatting", raising=False)
+    monkeypatch.delitem(sys.modules, "marimo._runtime", raising=False)
+    monkeypatch.delitem(sys.modules, "marimo._runtime.context", raising=False)
+
+    mime, payload = easydot.display("digraph { A -> B }", source="cdn")._mime_()
+
+    assert mime == "text/html"
+    assert "<iframe" in payload
+    assert "srcdoc=" in payload
+    assert "Graphviz.load" in payload
 
 
 def test_display_data_iframe_mode_bypasses_marimo_iframe(monkeypatch):
@@ -452,18 +566,20 @@ def test_display_explicit_srcdoc_wins_in_pycharm(monkeypatch):
 def test_display_rejects_invalid_iframe_mode(monkeypatch):
     monkeypatch.setenv("EASYDOT_IFRAME_MODE", "file")
 
-    message = "EASYDOT_IFRAME_MODE must be 'auto', 'marimo', 'srcdoc', or 'data'"
+    message = "EASYDOT_IFRAME_MODE must be 'auto', 'managed', 'srcdoc', or 'data'"
     with pytest.raises(ValueError, match=message):
         easydot.display("digraph { A -> B }", source="cdn")._mime_()
 
 
 def test_display_rejects_invalid_iframe_mode_argument():
-    message = "iframe_mode must be 'auto', 'marimo', 'srcdoc', or 'data'"
+    message = "iframe_mode must be 'auto', 'managed', 'srcdoc', or 'data'"
     with pytest.raises(ValueError, match=message):
         easydot.display("digraph { A -> B }", source="cdn", iframe_mode="file")
+    with pytest.raises(ValueError, match=message):
+        easydot.display("digraph { A -> B }", source="cdn", iframe_mode="marimo")
 
 
-def test_display_mime_uses_marimo_iframe_without_default_height(monkeypatch):
+def test_display_mime_uses_managed_iframe_without_default_height(monkeypatch):
     expected = '<iframe srcdoc="<p>ok</p>"></iframe>'
     iframe_calls = []
 

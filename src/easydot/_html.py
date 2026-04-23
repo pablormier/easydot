@@ -80,10 +80,10 @@ def _normalize_source(source: str) -> str:
 def _normalize_iframe_mode(mode: str | None) -> str:
     if mode is None:
         mode = os.environ.get(IFRAME_MODE_ENV_VAR, "auto")
-    if mode in ("auto", "marimo", "srcdoc", "data"):
+    if mode in ("auto", "managed", "srcdoc", "data"):
         return mode
     raise ValueError(
-        "iframe_mode must be 'auto', 'marimo', 'srcdoc', or 'data'; "
+        "iframe_mode must be 'auto', 'managed', 'srcdoc', or 'data'; "
         f"got {mode!r}"
     )
 
@@ -98,14 +98,6 @@ def _iframe_mode() -> str:
 
 def _in_pycharm() -> bool:
     return os.environ.get("PYCHARM_HOSTED") == "1"
-
-
-def _in_marimo() -> bool:
-    try:
-        from marimo._runtime.context import runtime_context_installed
-    except ImportError:
-        return "marimo" in sys.modules
-    return runtime_context_installed()
 
 
 def _module_urls(source: str) -> list[str]:
@@ -224,6 +216,7 @@ def html(
     source: str = "auto",
     fit: bool | str = False,
     scale: float = 1.0,
+    spinner: bool = True,
     toolbar: bool = True,
     worker: bool | str = False,
 ) -> str:
@@ -261,6 +254,7 @@ def html(
     js_fit = _js_literal(fit_mode)
     js_scale = _js_literal(float(scale))
     js_format = _js_literal(format)
+    js_show_spinner = _js_literal(bool(spinner))
     js_worker_mode = _js_literal(worker_mode)
 
     if fit_mode in ("vertical", "both"):
@@ -346,6 +340,7 @@ def html(
             "SVG_INSTALL_JS": svg_install_js,
             "FIT": js_fit,
             "SCALE": js_scale,
+            "SHOW_SPINNER": js_show_spinner,
             "WORKER_MODE": js_worker_mode,
             "TOOLBAR_SETUP_JS": toolbar_setup_js,
         }
@@ -375,6 +370,7 @@ class DotDisplay:
         scale: float = 1.0,
         iframe: bool = True,
         iframe_mode: str | None = None,
+        spinner: bool = True,
         toolbar: bool = True,
         worker: bool | str = False,
     ) -> None:
@@ -391,6 +387,7 @@ class DotDisplay:
             if iframe_mode is not None
             else None
         )
+        self.spinner = spinner
         self.toolbar = toolbar
         self.worker = worker
 
@@ -402,6 +399,7 @@ class DotDisplay:
             source=self.source,
             fit=self.fit,
             scale=self.scale,
+            spinner=self.spinner,
             toolbar=self.toolbar,
             worker=self.worker,
         )
@@ -426,7 +424,7 @@ class DotDisplay:
     def _configured_iframe_mode(self) -> str:
         return _iframe_mode() if self.iframe_mode is None else self.iframe_mode
 
-    def _marimo_iframe_html(self) -> str | None:
+    def _managed_iframe_html(self) -> str | None:
         try:
             from marimo._output.formatting import iframe
         except ImportError:
@@ -454,14 +452,12 @@ class DotDisplay:
         if mode == "srcdoc":
             return self._iframe_html(mode="srcdoc")
 
-        if mode == "marimo" or (mode == "auto" and _in_marimo()):
-            payload = self._marimo_iframe_html()
+        if mode == "managed" or mode == "auto":
+            payload = self._managed_iframe_html()
             if payload is not None:
                 return payload
 
-        if "IPython" in sys.modules:
-            return self._iframe_html(mode="srcdoc")
-        return self._body_html()
+        return self._iframe_html(mode="srcdoc")
 
     def _mime_(self) -> tuple[str, str]:
         return "text/html", self._html_payload()
@@ -480,7 +476,8 @@ class DotDisplay:
         except ImportError:
             return
 
-        display_html(self._html_payload(), raw=True)
+        payload = self._iframe_html() if self.iframe else self._body_html()
+        display_html(payload, raw=True)
 
     def _repr_html_(self) -> str:
         return self._html_payload()
@@ -500,6 +497,7 @@ def display(
     scale: float = 1.0,
     iframe: bool = True,
     iframe_mode: str | None = None,
+    spinner: bool = True,
     toolbar: bool = True,
     worker: bool | str = False,
 ) -> DotDisplay:
@@ -522,6 +520,7 @@ def display(
         scale=scale,
         iframe=iframe,
         iframe_mode=iframe_mode,
+        spinner=spinner,
         toolbar=toolbar,
         worker=worker,
     )
