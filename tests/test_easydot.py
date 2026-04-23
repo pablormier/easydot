@@ -16,11 +16,16 @@ def _install_fake_marimo(monkeypatch, iframe_impl):
     marimo_module = ModuleType("marimo")
     output_module = ModuleType("marimo._output")
     formatting_module = ModuleType("marimo._output.formatting")
+    runtime_module = ModuleType("marimo._runtime")
+    context_module = ModuleType("marimo._runtime.context")
     formatting_module.iframe = iframe_impl
+    context_module.runtime_context_installed = lambda: True
 
     monkeypatch.setitem(sys.modules, "marimo", marimo_module)
     monkeypatch.setitem(sys.modules, "marimo._output", output_module)
     monkeypatch.setitem(sys.modules, "marimo._output.formatting", formatting_module)
+    monkeypatch.setitem(sys.modules, "marimo._runtime", runtime_module)
+    monkeypatch.setitem(sys.modules, "marimo._runtime.context", context_module)
 
 
 def test_asset_urls_serves_bundled_module():
@@ -328,6 +333,7 @@ def test_display_mime_integrates_with_real_marimo():
         source="cdn",
         fit=True,
         scale=1.25,
+        iframe_mode="marimo",
     )._mime_()
 
     assert mime == "text/html"
@@ -371,11 +377,90 @@ def test_display_srcdoc_iframe_mode_bypasses_marimo_iframe(monkeypatch):
     assert DEFAULT_CDN_URL in payload
 
 
+def test_display_data_iframe_mode_bypasses_marimo_iframe(monkeypatch):
+    _install_fake_marimo(
+        monkeypatch,
+        lambda *_args, **_kwargs: pytest.fail("marimo iframe should not be used"),
+    )
+    monkeypatch.setenv("EASYDOT_IFRAME_MODE", "data")
+
+    mime, payload = easydot.display("digraph { A -> B }", source="cdn")._mime_()
+
+    assert mime == "text/html"
+    assert "<iframe" in payload
+    assert "src='data:text/html;charset=utf-8;base64," in payload
+    assert "srcdoc=" not in payload
+    assert "digraph { A -> B }" not in payload
+
+
+def test_display_iframe_mode_argument_uses_data_iframe(monkeypatch):
+    _install_fake_marimo(
+        monkeypatch,
+        lambda *_args, **_kwargs: pytest.fail("marimo iframe should not be used"),
+    )
+
+    mime, payload = easydot.display(
+        "digraph { A -> B }",
+        source="cdn",
+        iframe_mode="data",
+    )._mime_()
+
+    assert mime == "text/html"
+    assert "src='data:text/html;charset=utf-8;base64," in payload
+    assert "srcdoc=" not in payload
+
+
+def test_display_iframe_mode_argument_wins_over_env(monkeypatch):
+    monkeypatch.setenv("EASYDOT_IFRAME_MODE", "data")
+
+    mime, payload = easydot.display(
+        "digraph { A -> B }",
+        source="cdn",
+        iframe_mode="srcdoc",
+    )._mime_()
+
+    assert mime == "text/html"
+    assert "srcdoc=" in payload
+    assert "src='data:text/html;charset=utf-8;base64," not in payload
+
+
+def test_display_auto_uses_data_iframe_in_pycharm(monkeypatch):
+    _install_fake_marimo(
+        monkeypatch,
+        lambda *_args, **_kwargs: pytest.fail("marimo iframe should not be used"),
+    )
+    monkeypatch.setenv("PYCHARM_HOSTED", "1")
+
+    mime, payload = easydot.display("digraph { A -> B }", source="cdn")._mime_()
+
+    assert mime == "text/html"
+    assert "src='data:text/html;charset=utf-8;base64," in payload
+    assert "srcdoc=" not in payload
+
+
+def test_display_explicit_srcdoc_wins_in_pycharm(monkeypatch):
+    monkeypatch.setenv("PYCHARM_HOSTED", "1")
+    monkeypatch.setenv("EASYDOT_IFRAME_MODE", "srcdoc")
+
+    mime, payload = easydot.display("digraph { A -> B }", source="cdn")._mime_()
+
+    assert mime == "text/html"
+    assert "srcdoc=" in payload
+    assert "src='data:text/html;charset=utf-8;base64," not in payload
+
+
 def test_display_rejects_invalid_iframe_mode(monkeypatch):
     monkeypatch.setenv("EASYDOT_IFRAME_MODE", "file")
 
-    with pytest.raises(ValueError, match="EASYDOT_IFRAME_MODE must be 'auto', 'marimo', or 'srcdoc'"):
+    message = "EASYDOT_IFRAME_MODE must be 'auto', 'marimo', 'srcdoc', or 'data'"
+    with pytest.raises(ValueError, match=message):
         easydot.display("digraph { A -> B }", source="cdn")._mime_()
+
+
+def test_display_rejects_invalid_iframe_mode_argument():
+    message = "iframe_mode must be 'auto', 'marimo', 'srcdoc', or 'data'"
+    with pytest.raises(ValueError, match=message):
+        easydot.display("digraph { A -> B }", source="cdn", iframe_mode="file")
 
 
 def test_display_mime_uses_marimo_iframe_without_default_height(monkeypatch):

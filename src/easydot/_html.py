@@ -77,11 +77,35 @@ def _normalize_source(source: str) -> str:
     raise ValueError(f"source must be 'auto', 'local', or 'cdn'; got {source!r}")
 
 
-def _iframe_mode() -> str:
-    mode = os.environ.get(IFRAME_MODE_ENV_VAR, "auto")
-    if mode in ("auto", "marimo", "srcdoc"):
+def _normalize_iframe_mode(mode: str | None) -> str:
+    if mode is None:
+        mode = os.environ.get(IFRAME_MODE_ENV_VAR, "auto")
+    if mode in ("auto", "marimo", "srcdoc", "data"):
         return mode
-    raise ValueError(f"{IFRAME_MODE_ENV_VAR} must be 'auto', 'marimo', or 'srcdoc'; got {mode!r}")
+    raise ValueError(
+        "iframe_mode must be 'auto', 'marimo', 'srcdoc', or 'data'; "
+        f"got {mode!r}"
+    )
+
+
+def _iframe_mode() -> str:
+    try:
+        return _normalize_iframe_mode(os.environ.get(IFRAME_MODE_ENV_VAR, "auto"))
+    except ValueError as error:
+        message = str(error).replace("iframe_mode", IFRAME_MODE_ENV_VAR, 1)
+        raise ValueError(message) from None
+
+
+def _in_pycharm() -> bool:
+    return os.environ.get("PYCHARM_HOSTED") == "1"
+
+
+def _in_marimo() -> bool:
+    try:
+        from marimo._runtime.context import runtime_context_installed
+    except ImportError:
+        return "marimo" in sys.modules
+    return runtime_context_installed()
 
 
 def _module_urls(source: str) -> list[str]:
@@ -350,6 +374,7 @@ class DotDisplay:
         fit: bool | str = False,
         scale: float = 1.0,
         iframe: bool = True,
+        iframe_mode: str | None = None,
         toolbar: bool = True,
         worker: bool | str = False,
     ) -> None:
@@ -361,6 +386,11 @@ class DotDisplay:
         self.fit = fit
         self.scale = scale
         self.iframe = iframe
+        self.iframe_mode = (
+            _normalize_iframe_mode(iframe_mode)
+            if iframe_mode is not None
+            else None
+        )
         self.toolbar = toolbar
         self.worker = worker
 
@@ -376,39 +406,65 @@ class DotDisplay:
             worker=self.worker,
         )
 
-    def _iframe_html(self) -> str:
-        escaped = html_lib.escape(self._body_html(), quote=True)
-        height_attr = "" if self.iframe_height is None else f" height='{html_lib.escape(self.iframe_height, quote=True)}'"
+    def _iframe_html(self, *, mode: str = "srcdoc") -> str:
+        body_html = self._body_html()
+        escaped = html_lib.escape(body_html, quote=True)
+        height_attr = (
+            ""
+            if self.iframe_height is None
+            else f" height='{html_lib.escape(self.iframe_height, quote=True)}'"
+        )
+        if mode == "data":
+            src = f"data:text/html;charset=utf-8;base64,{_b64_text(body_html)}"
+            escaped_src = html_lib.escape(src, quote=True)
+            return (
+                f"<iframe src='{escaped_src}' width='100%'{height_attr} "
+                "frameborder='0'></iframe>"
+            )
         return f"<iframe srcdoc='{escaped}' width='100%'{height_attr} frameborder='0'></iframe>"
 
-    def _mime_(self) -> tuple[str, str]:
-        if not self.iframe:
-            return "text/html", self._body_html()
+    def _configured_iframe_mode(self) -> str:
+        return _iframe_mode() if self.iframe_mode is None else self.iframe_mode
 
-        mode = _iframe_mode()
-        if mode == "srcdoc":
-            return "text/html", self._iframe_html()
-
+    def _marimo_iframe_html(self) -> str | None:
         try:
             from marimo._output.formatting import iframe
         except ImportError:
-            iframe = None
+            return None
 
-        if iframe is not None:
-            kwargs = {} if self.iframe_height is None else {"height": self.iframe_height}
-            frame = iframe(self._body_html(), **kwargs)
-            frame_mime = getattr(frame, "_mime_", None)
-            if callable(frame_mime):
-                mime_type, payload = frame_mime()
-                if mime_type == "text/html" and isinstance(payload, str):
-                    return mime_type, payload
-            payload = getattr(frame, "html", None)
-            if isinstance(payload, str):
-                return "text/html", payload
+        kwargs = {} if self.iframe_height is None else {"height": self.iframe_height}
+        frame = iframe(self._body_html(), **kwargs)
+        frame_mime = getattr(frame, "_mime_", None)
+        if callable(frame_mime):
+            mime_type, payload = frame_mime()
+            if mime_type == "text/html" and isinstance(payload, str):
+                return payload
+        payload = getattr(frame, "html", None)
+        if isinstance(payload, str):
+            return payload
+        return None
+
+    def _html_payload(self) -> str:
+        if not self.iframe:
+            return self._body_html()
+
+        mode = self._configured_iframe_mode()
+        if mode == "data" or (mode == "auto" and _in_pycharm()):
+            return self._iframe_html(mode="data")
+        if mode == "srcdoc":
+            return self._iframe_html(mode="srcdoc")
+
+        if mode == "marimo" or (mode == "auto" and _in_marimo()):
+            payload = self._marimo_iframe_html()
+            if payload is not None:
+                return payload
 
         if "IPython" in sys.modules:
-            return "text/html", self._iframe_html()
-        return "text/html", self._body_html()
+            return self._iframe_html(mode="srcdoc")
+        return self._body_html()
+
+    def _mime_(self) -> tuple[str, str]:
+        return "text/html", self._html_payload()
 
     def _repr_mimebundle_(self, include=None, exclude=None) -> dict[str, str]:
         """Return a Jupyter MIME bundle for frontends that prefer it."""
@@ -424,13 +480,10 @@ class DotDisplay:
         except ImportError:
             return
 
-        payload = self._iframe_html() if self.iframe else self._body_html()
-        display_html(payload, raw=True)
+        display_html(self._html_payload(), raw=True)
 
     def _repr_html_(self) -> str:
-        if self.iframe and "IPython" in sys.modules:
-            return self._iframe_html()
-        return self._body_html()
+        return self._html_payload()
 
     def __repr__(self) -> str:
         return self.dot
@@ -446,6 +499,7 @@ def display(
     fit: bool | str = False,
     scale: float = 1.0,
     iframe: bool = True,
+    iframe_mode: str | None = None,
     toolbar: bool = True,
     worker: bool | str = False,
 ) -> DotDisplay:
@@ -454,7 +508,8 @@ def display(
     See :func:`html` for the ``fit``/``scale`` contract. ``iframe_height`` sets
     the wrapping iframe's height attribute; viewport-fit modes (``"vertical"``,
     ``"both"``) use the iframe height the host provides unless you pass this
-    kwarg to pin it explicitly.
+    kwarg to pin it explicitly. ``iframe_mode`` controls the outer notebook
+    wrapper and defaults to ``EASYDOT_IFRAME_MODE``.
     """
 
     return DotDisplay(
@@ -466,6 +521,7 @@ def display(
         fit=fit,
         scale=scale,
         iframe=iframe,
+        iframe_mode=iframe_mode,
         toolbar=toolbar,
         worker=worker,
     )

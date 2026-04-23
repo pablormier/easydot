@@ -110,7 +110,17 @@ Only applies when `source="auto"`. Explicit `source=` arguments still win.
 For hosted marimo environments that protect generated iframe file URLs, force a self-contained iframe:
 
 ```python
-os.environ["EASYDOT_IFRAME_MODE"] = "srcdoc"   # auto | marimo | srcdoc
+os.environ["EASYDOT_IFRAME_MODE"] = "srcdoc"   # auto | marimo | srcdoc | data
+```
+
+PyCharm notebooks are detected automatically and use a `data:` iframe because
+their output recycling can detach and reattach `srcdoc` iframes while scrolling.
+You can force that wrapper explicitly with `EASYDOT_IFRAME_MODE="data"`.
+
+The same modes are available per display call:
+
+```python
+easydot.display("digraph { A -> B }", iframe_mode="data")
 ```
 
 </details>
