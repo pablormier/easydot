@@ -458,7 +458,7 @@ def _():
     import random
 
     rng = random.Random(7)
-    node_count = 1000
+    node_count = 800
     random_edges = {
         (rng.randrange(node_count), rng.randrange(node_count))
         for _ in range(2500)
@@ -490,7 +490,7 @@ def _(easydot, large_dot, mo):
         [
             mo.md("## 9. Large graph rendering"),
             mo.md("Random 1000-node graph rendered with `engine='sfdp'` and `worker=True`."),
-            easydot.display(large_dot, engine="sfdp", worker=True, fit=True),
+            easydot.display(large_dot, engine="sfdp", worker=True, fit="horizontal"),
         ]
     )
     return

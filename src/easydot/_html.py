@@ -11,7 +11,7 @@ import uuid
 from importlib.resources import files
 from typing import Protocol
 
-from easydot._icons import CHECK_ICON, COPY_ICON, DOWNLOAD_ICON
+from easydot._icons import CHECK_ICON, COPY_ICON, DOWNLOAD_ICON, STOP_ICON
 from easydot._version import UPSTREAM_PACKAGE, UPSTREAM_VERSION
 from easydot._server import asset_urls
 
@@ -135,6 +135,12 @@ def _layout_stylesheet(attr_id: str) -> str:
         "width:14px;height:14px;border:2px solid #d0d0d0;border-top-color:currentColor;"
         "border-radius:50%;animation:easydot-spin 800ms linear infinite;box-sizing:border-box"
         "}"
+        f"#{attr_id} .easydot-stop{{"
+        "background:transparent;border:0;border-radius:4px;padding:2px;"
+        "margin:0;cursor:pointer;color:#6b6b6b;line-height:0;"
+        "transition:color 120ms ease-in-out,background-color 120ms ease-in-out;"
+        "}"
+        f"#{attr_id} .easydot-stop:hover{{color:#b00020;background:rgba(176,0,32,0.08)}}"
         "@keyframes easydot-spin{to{transform:rotate(360deg)}}"
         f"#{attr_id}.easydot-fit-none{{overflow:auto}}"
         f"#{attr_id}.easydot-fit-none.easydot-scaled > svg{{"
@@ -343,6 +349,7 @@ def html(
             "SHOW_SPINNER": js_show_spinner,
             "WORKER_MODE": js_worker_mode,
             "TOOLBAR_SETUP_JS": toolbar_setup_js,
+            "STOP_ICON": _js_literal(STOP_ICON),
         }
     )
 

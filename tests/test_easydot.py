@@ -195,6 +195,8 @@ def test_html_defaults_to_disabled_worker_mode():
     assert 'const workerMode = "disabled";' in rendered
     assert "const showSpinner = true;" in rendered
     assert "easydot-spinner" in rendered
+    assert 'showStatus(message, state, false);' in rendered
+    assert 'showStatus("Rendering graph...", "info", true);' in rendered
 
 
 def test_html_spinner_false_disables_spinner_icon():
@@ -210,6 +212,8 @@ def test_html_worker_auto_tries_worker_with_fallback():
     assert 'const workerMode = "auto";' in rendered
     assert "new Worker(url, { type: \"module\" })" in rendered
     assert "Web Worker unavailable; rendering on main thread." in rendered
+    assert 'showStatus("Rendering graph...", "info", true);' in rendered
+    assert 'showStatus(message, state, false);' in rendered
 
 
 def test_html_worker_true_requires_worker():
@@ -217,12 +221,14 @@ def test_html_worker_true_requires_worker():
 
     assert 'const workerMode = "require";' in rendered
     assert "Web Worker rendering was required but failed" in rendered
+    assert 'showStatus("Rendering graph...", "info", true);' in rendered
 
 
 def test_html_worker_false_disables_worker():
     rendered = easydot.html("digraph { A -> B }", source="cdn", worker=False)
 
     assert 'const workerMode = "disabled";' in rendered
+    assert 'showStatus(message, state, false);' in rendered
 
 
 def test_html_rejects_unknown_worker_value():

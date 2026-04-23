@@ -19,14 +19,25 @@
   };
   const nextFrame = () => new Promise((resolve) => requestAnimationFrame(resolve));
   const showSpinner = __EASYDOT_SHOW_SPINNER__;
-  const statusMarkup = (message) =>
+  const workerMode = __EASYDOT_WORKER_MODE__;
+  const stopIcon = __EASYDOT_STOP_ICON__;
+  const statusMarkup = (message, cancellable = false) =>
     `<div class="easydot-status" data-easydot-status>${
       showSpinner ? '<span class="easydot-spinner" aria-hidden="true"></span>' : ""
-    }<span data-easydot-status-text>${message}</span></div>`;
-  const showStatus = (message, state = "info") => {
+    }<span data-easydot-status-text>${message}</span>${
+      cancellable
+        ? `<button type="button" class="easydot-stop" data-easydot-stop aria-label="Cancel rendering" title="Cancel rendering">${stopIcon}</button>`
+        : ""
+    }</div>`;
+  const showStatus = (message, state = "info", cancellable = false) => {
     let status = target.querySelector("[data-easydot-status]");
     if (!status) {
-      target.insertAdjacentHTML("beforeend", statusMarkup(message));
+      target.insertAdjacentHTML("beforeend", statusMarkup(message, cancellable));
+      status = target.querySelector("[data-easydot-status]");
+    } else {
+      const next = document.createElement("div");
+      next.innerHTML = statusMarkup(message, cancellable);
+      status.replaceWith(next.firstElementChild);
       status = target.querySelector("[data-easydot-status]");
     }
     const text = status.querySelector("[data-easydot-status-text]");
@@ -36,6 +47,29 @@
     status.classList.toggle("is-warning", state === "warning");
     syncFrameHeight();
   };
+  const removeStatus = () => {
+    target.querySelectorAll("[data-easydot-status]").forEach((el) => el.remove());
+    syncFrameHeight();
+  };
+  const showCancelled = () => {
+    const status = target.querySelector("[data-easydot-status]");
+    if (status) {
+      status.innerHTML = '<span data-easydot-status-text>Rendering cancelled.</span>';
+    } else {
+      target.insertAdjacentHTML("beforeend", '<div class="easydot-status" data-easydot-status"><span data-easydot-status-text>Rendering cancelled.</span></div>');
+    }
+    syncFrameHeight();
+  };
+  const abortController = new AbortController();
+  const { signal } = abortController;
+  const onStopClick = () => {
+    abortController.abort();
+  };
+  target.addEventListener("click", (e) => {
+    if (e.target.closest("[data-easydot-stop]")) {
+      onStopClick();
+    }
+  });
   const workerSource = `
     const loadGraphviz = async (moduleUrls) => {
       let lastError = null;
@@ -76,16 +110,22 @@
     }
   };
   try {
+    if (signal.aborted) {
+      showCancelled();
+      return;
+    }
     const moduleUrls = __EASYDOT_MODULE_URLS__;
     const dot = decode("__EASYDOT_DOT_B64__");
     const format = decode("__EASYDOT_FORMAT_B64__");
     const engine = decode("__EASYDOT_ENGINE_B64__");
-    const workerMode = __EASYDOT_WORKER_MODE__;
     const easydot = (globalThis.__easydot__ ||= {});
     const cache = (easydot.graphvizCache ||= new Map());
     const loadGraphviz = async () => {
       let lastError = null;
       for (const url of moduleUrls) {
+        if (signal.aborted) {
+          throw new DOMException("Rendering cancelled.", "AbortError");
+        }
         let pending = cache.get(url);
         if (!pending) {
           pending = (async () => {
@@ -110,15 +150,32 @@
       throw lastError || new Error("Unable to load Graphviz WASM module");
     };
     const renderOnMainThread = async (message = "Rendering graph...", state = "info") => {
-      showStatus(message, state);
+      if (signal.aborted) {
+        throw new DOMException("Rendering cancelled.", "AbortError");
+      }
+      showStatus(message, state, false);
       await nextFrame();
       const graphviz = await loadGraphviz();
+      if (signal.aborted) {
+        throw new DOMException("Rendering cancelled.", "AbortError");
+      }
       return await graphviz.layout(dot, format, engine);
     };
     const renderInWorker = () =>
       new Promise((resolve, reject) => {
         const worker = createRenderWorker();
+        const onAbort = () => {
+          worker.terminate();
+          reject(new DOMException("Rendering cancelled.", "AbortError"));
+        };
+        if (signal.aborted) {
+          worker.terminate();
+          reject(new DOMException("Rendering cancelled.", "AbortError"));
+          return;
+        }
+        signal.addEventListener("abort", onAbort);
         worker.onmessage = (event) => {
+          signal.removeEventListener("abort", onAbort);
           worker.terminate();
           const message = event.data;
           if (message && message.ok) {
@@ -128,6 +185,7 @@
           }
         };
         worker.onerror = (event) => {
+          signal.removeEventListener("abort", onAbort);
           worker.terminate();
           reject(new Error(event.message || "Graphviz worker failed"));
         };
@@ -138,9 +196,12 @@
         return renderOnMainThread();
       }
       try {
-        showStatus("Rendering graph...");
+        showStatus("Rendering graph...", "info", true);
         return await renderInWorker();
       } catch (error) {
+        if (error && error.name === "AbortError") {
+          throw error;
+        }
         if (workerMode === "require") {
           throw new Error(`Web Worker rendering was required but failed: ${error.message}`);
         }
@@ -151,6 +212,10 @@
       }
     };
     const svg = await renderDot();
+    if (signal.aborted) {
+      return;
+    }
+    removeStatus();
     __EASYDOT_SVG_INSTALL_JS__
 
     const fit = __EASYDOT_FIT__;
@@ -180,6 +245,10 @@
       }
     }
   } catch (error) {
+    if (error && error.name === "AbortError") {
+      showCancelled();
+      return;
+    }
     target.innerHTML = "<pre style='white-space:pre-wrap;color:#b00020'>Graph rendering failed: "
       + String(error) + "</pre>";
     syncFrameHeight();
