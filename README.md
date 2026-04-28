@@ -2,9 +2,9 @@
 
 <img src="assets/easydot-logo.png" alt="easydot" width="300">
 
-**Graphviz rendered in the browser, from one line of Python. 100% client-side.**
+**Graphviz rendered in the browser or notebook, from one line of Python.**
 
-[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-3776ab?logo=python&logoColor=white)](https://www.python.org)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-3776ab?logo=python&logoColor=white)](https://www.python.org)
 [![pip install easydot](https://img.shields.io/badge/pip%20install-easydot-blue?logo=pypi&logoColor=white)](https://pypi.org/project/easydot/)
 [![License: BSD-3-Clause](https://img.shields.io/badge/license-BSD--3--Clause-green)](LICENSE)
 [![No Dependencies](https://img.shields.io/badge/dependencies-0-brightgreen)]()
@@ -33,10 +33,10 @@ easydot.display("digraph { A -> B -> C }")
 Graphviz usually requires a native `dot` binary. That's fine on a laptop, but painful in CI images, slim containers, shared clusters, and browser runtimes like JupyterLite, Pyodide, or marimo. `easydot` packages browser rendering so `pip install easydot` is enough for notebooks.
 
 - **Pip-installable.** No `brew`, no `conda`, no `apt-get`, no Dockerfile changes.
-- **Browser rendering.** Layout runs client-side via [Graphviz WASM](https://github.com/hpcc-systems/hpcc-js-wasm), so it works inside sandboxed kernels and restricted hosts.
+- **Multiple rendering modes.** Browser-side JS/WASM (`easydot.display`) works in sandboxed kernels; server-side WASM (`easydot.display_svg`) produces portable static SVGs; native Graphviz is available when system binaries are installed.
 - **Tiny notebook outputs.** The WASM bundle is vendored and served once over loopback instead of inlined into every cell.
 - **Works offline.** Assets ship in the package, with a local fallback when the CDN isn't reachable.
-- **Small API.** `easydot.display(...)` renders via `_repr_html_` in notebooks.
+- **Small API.** `easydot.display(...)` renders via `_repr_html_` in notebooks; `easydot.display_svg(...)` renders via `_repr_svg_`.
 
 ## 🔤 Why DOT
 
@@ -48,6 +48,63 @@ DOT is a small text format for graph diagrams. Many Python libraries and build t
 - **Graphviz features.** Five layout engines (`dot`, `neato`, `fdp`, `circo`, `twopi`), clusters, HTML-like labels, and styling.
 
 ## 🚀 Usage
+
+### Quick start
+
+Supported backends: `browser` (interactive, default), `wasm` (static SVG
+without native binaries), and `native` (static SVG via installed Graphviz
+executables).
+
+```python
+import easydot
+
+# Interactive browser rendering (default)
+easydot.render("digraph { A -> B -> C }")
+
+# Static SVG for saved notebooks / GitHub
+easydot.render("digraph { A -> B -> C }", backend="wasm")
+
+# Static SVG using native Graphviz, when available on PATH
+easydot.render("digraph { A -> B -> C }", backend="native")
+
+# Raw strings
+easydot.to_string("digraph { A -> B -> C }")                       # HTML
+easydot.to_string("digraph { A -> B -> C }", backend="wasm")      # SVG
+easydot.to_string("digraph { A -> B -> C }", backend="native")    # SVG
+```
+
+### Server-side WASM rendering
+
+For static SVG output that works in saved notebooks and GitHub without a live browser runtime:
+
+```bash
+pip install easydot[wasm]
+```
+
+```python
+import easydot
+
+# Raw SVG string
+svg = easydot.svg("digraph { A -> B -> C }")
+
+# Rich display object for notebooks
+easydot.display_svg("digraph { A -> B -> C }")
+```
+
+### Native Graphviz rendering
+
+If Graphviz executables are installed and available on `PATH`, `easydot` can
+render through the native toolchain:
+
+```python
+import easydot
+
+svg = easydot.native_svg("digraph { A -> B -> C }")
+easydot.display_native_svg("digraph { A -> B -> C }")
+```
+
+The native backend shells to the selected Graphviz engine, such as `dot` or
+`neato`, and fails if the executable is missing or Graphviz returns an error.
 
 ### pydot
 
@@ -171,7 +228,7 @@ const graphviz = await mod.Graphviz.load();
 const svg = graphviz.layout("digraph { A -> B }", "svg", "dot");
 ```
 
-> Need server-side rendering to files? Use native Graphviz or the [`graphviz`](https://pypi.org/project/graphviz/) Python package. `easydot` is browser-only by design.
+> Need server-side rendering to files? Use `easydot.svg(...)` or native Graphviz.
 
 <details>
 <summary><b>Runtime model</b></summary>

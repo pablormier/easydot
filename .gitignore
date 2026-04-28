@@ -16,6 +16,7 @@ dist/
 .coverage.*
 coverage.xml
 htmlcov/
+.playwright-mcp/
 .pytest_cache/
 .ruff_cache/
 .mypy_cache/

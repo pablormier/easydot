@@ -1,11 +1,11 @@
 [project]
 name = "easydot"
-version = "0.1.15"
+version = "0.1.16"
 description = "Tiny browser-side Graphviz DOT rendering helpers for notebooks and web views"
 authors = [
     { name = "Pablo Rodriguez Mier", email = "pablo.rodriguez.mier@gmail.com" }
 ]
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dependencies = []
 readme = "README.md"
 license = "BSD-3-Clause"
@@ -29,6 +29,10 @@ easydot = "easydot._cli:main"
 pydot = [
     "pydot>=4,<5",
 ]
+wasm = [
+    "wasi-graphviz>=0.1.0a2",
+    "wasmtime>=22",
+]
 
 [project.urls]
 Homepage = "https://github.com/pablormier/easydot"
@@ -41,6 +45,8 @@ dev = [
     "nbformat>=5.10,<6",
     "pytest>=8.3,<9",
     "marimo>=0.9",
+    "wasmtime>=44.0.0",
+    "wasi-graphviz>=0.1.0",
 ]
 
 [tool.uv]

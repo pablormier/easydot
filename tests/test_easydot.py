@@ -10,6 +10,7 @@ from urllib.request import urlopen
 import pytest
 
 import easydot
+from easydot import _native
 from easydot import _server
 from easydot._html import DEFAULT_CDN_URL
 
@@ -668,3 +669,190 @@ def test_display_explicit_iframe_height_is_forwarded(monkeypatch):
     obj._mime_()
 
     assert iframe_calls == [{"height": "320px"}]
+
+
+def test_svg_renders_valid_svg():
+    svg_text = easydot.svg("digraph { A -> B }")
+
+    assert ("<svg" in svg_text or "<?xml" in svg_text) and "A" in svg_text
+
+
+def test_svg_accepts_pydot_like_object():
+    class Graph:
+        def to_string(self) -> str:
+            return "digraph { A -> B }"
+
+    svg_text = easydot.svg(Graph())
+
+    assert "<svg" in svg_text or "<?xml" in svg_text
+
+
+def test_display_svg_returns_svg_display():
+    obj = easydot.display_svg("digraph { A -> B }")
+
+    assert isinstance(obj, easydot.SvgDisplay)
+
+
+def test_svg_display_mimebundle_contains_svg():
+    obj = easydot.SvgDisplay("digraph { A -> B }")
+    bundle = obj._repr_mimebundle_()
+
+    assert "image/svg+xml" in bundle
+    assert "text/plain" in bundle
+    assert "<svg" in bundle["image/svg+xml"] or "<?xml" in bundle["image/svg+xml"]
+    assert bundle["text/plain"] == "digraph { A -> B }"
+
+
+def test_svg_display_repr_svg_returns_svg():
+    obj = easydot.SvgDisplay("digraph { A -> B }")
+    svg_text = obj._repr_svg_()
+
+    assert "<svg" in svg_text or "<?xml" in svg_text
+
+
+def test_svg_display_repr_returns_dot():
+    obj = easydot.SvgDisplay("digraph { A -> B }")
+
+    assert repr(obj) == "digraph { A -> B }"
+
+
+def test_native_svg_runs_graphviz_executable(monkeypatch):
+    calls = []
+
+    def fake_run(args, *, input, stdout, stderr, check):
+        calls.append((args, input, stdout, stderr, check))
+        return subprocess.CompletedProcess(args, 0, b"<svg>A</svg>", b"")
+
+    monkeypatch.setattr(_native.subprocess, "run", fake_run)
+
+    assert easydot.native_svg("digraph { A -> B }", engine="neato") == "<svg>A</svg>"
+    assert calls == [
+        (
+            ["neato", "-Tsvg"],
+            b"digraph { A -> B }",
+            subprocess.PIPE,
+            subprocess.PIPE,
+            False,
+        )
+    ]
+
+
+def test_native_accepts_pydot_like_object(monkeypatch):
+    class Graph:
+        def to_string(self) -> str:
+            return "digraph { A -> B }"
+
+    monkeypatch.setattr(
+        _native.subprocess,
+        "run",
+        lambda *args, **kwargs: subprocess.CompletedProcess(args, 0, b"plain", b""),
+    )
+
+    assert easydot.native(Graph(), format="plain") == "plain"
+
+
+def test_native_missing_executable_raises_helpful_error(monkeypatch):
+    def fake_run(*_args, **_kwargs):
+        raise FileNotFoundError("dot")
+
+    monkeypatch.setattr(_native.subprocess, "run", fake_run)
+
+    with pytest.raises(RuntimeError, match="Native Graphviz executable 'dot' was not found"):
+        easydot.native_svg("digraph { A -> B }")
+
+
+def test_native_failure_includes_stderr(monkeypatch):
+    monkeypatch.setattr(
+        _native.subprocess,
+        "run",
+        lambda *args, **kwargs: subprocess.CompletedProcess(args, 1, b"", b"syntax error"),
+    )
+
+    with pytest.raises(RuntimeError, match="syntax error"):
+        easydot.native_svg("digraph {")
+
+
+def test_display_native_svg_returns_native_svg_display():
+    obj = easydot.display_native_svg("digraph { A -> B }")
+
+    assert isinstance(obj, easydot.NativeSvgDisplay)
+    assert repr(obj) == "digraph { A -> B }"
+
+
+def test_native_svg_display_mimebundle_contains_svg(monkeypatch):
+    monkeypatch.setattr(_native, "native_svg", lambda dot, *, engine="dot": "<svg>A</svg>")
+
+    bundle = easydot.NativeSvgDisplay("digraph { A -> B }")._repr_mimebundle_()
+
+    assert bundle == {
+        "image/svg+xml": "<svg>A</svg>",
+        "text/plain": "digraph { A -> B }",
+    }
+
+
+def test_svg_missing_dependency_raises_helpful_error(monkeypatch):
+    monkeypatch.setitem(sys.modules, "wasi_graphviz", None)
+
+    with pytest.raises(ImportError, match="wasi-graphviz"):
+        easydot.svg("digraph { A -> B }")
+
+
+def test_svg_display_missing_dependency_raises_helpful_error(monkeypatch):
+    monkeypatch.setitem(sys.modules, "wasi_graphviz", None)
+
+    with pytest.raises(ImportError, match="wasi-graphviz"):
+        easydot.SvgDisplay("digraph { A -> B }")._render()
+
+
+def test_render_browser_returns_dot_display():
+    obj = easydot.render("digraph { A -> B }")
+
+    assert isinstance(obj, easydot.DotDisplay)
+
+
+def test_render_wasm_returns_svg_display():
+    obj = easydot.render("digraph { A -> B }", backend="wasm")
+
+    assert isinstance(obj, easydot.SvgDisplay)
+
+
+def test_render_native_returns_native_svg_display():
+    obj = easydot.render("digraph { A -> B }", backend="native")
+
+    assert isinstance(obj, easydot.NativeSvgDisplay)
+
+
+def test_render_forwards_kwargs():
+    obj = easydot.render("digraph { A -> B }", source="cdn")
+
+    assert isinstance(obj, easydot.DotDisplay)
+    assert DEFAULT_CDN_URL in obj._body_html()
+
+
+def test_render_rejects_unknown_backend():
+    with pytest.raises(ValueError, match="backend must be 'browser', 'wasm', or 'native'"):
+        easydot.render("digraph { A -> B }", backend="missing")
+
+
+def test_to_string_browser_returns_html():
+    result = easydot.to_string("digraph { A -> B }")
+
+    assert "<" in result
+    assert isinstance(result, str)
+
+
+def test_to_string_wasm_returns_svg():
+    result = easydot.to_string("digraph { A -> B }", backend="wasm")
+
+    assert ("<svg" in result or "<?xml" in result) and isinstance(result, str)
+
+
+def test_to_string_native_returns_svg(monkeypatch):
+    monkeypatch.setattr(easydot, "native_svg", lambda dot, *, engine="dot": "<svg>A</svg>")
+
+    assert easydot.to_string("digraph { A -> B }", backend="native") == "<svg>A</svg>"
+
+
+def test_to_string_rejects_unknown_backend():
+    with pytest.raises(ValueError, match="backend must be 'browser', 'wasm', or 'native'"):
+        easydot.to_string("digraph { A -> B }", backend="missing")

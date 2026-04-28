@@ -5,12 +5,18 @@ from __future__ import annotations
 import argparse
 import sys
 
-from easydot import asset_urls, html
+from easydot import asset_urls, to_string
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Render Graphviz DOT with browser-side WASM helpers.")
     parser.add_argument("dot", nargs="?", help="DOT source. Reads stdin when omitted.")
+    parser.add_argument(
+        "--backend",
+        choices=("browser", "wasm", "native"),
+        default="browser",
+        help="Rendering backend.",
+    )
     parser.add_argument("--engine", default="dot", help="Graphviz layout engine.")
     parser.add_argument("--urls", action="store_true", help="Print local asset URLs instead of HTML.")
     args = parser.parse_args(argv)
@@ -21,7 +27,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     dot = args.dot if args.dot is not None else sys.stdin.read()
-    print(html(dot, engine=args.engine))
+    print(to_string(dot, backend=args.backend, engine=args.engine))
     return 0
 
 
