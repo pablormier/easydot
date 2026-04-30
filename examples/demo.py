@@ -110,7 +110,7 @@ def _(architecture_dot, easydot, mo):
     mo.vstack(
         [
             mo.md("## 1. Notebook-native DOT rendering"),
-            easydot.display(architecture_dot, fit=True),
+            easydot.render(architecture_dot, fit=True),
         ]
     )
     return
@@ -216,7 +216,7 @@ def _(biology_dot, easydot, mo):
     mo.vstack(
         [
             mo.md("## 2. Complex DOT without local Graphviz"),
-            easydot.display(biology_dot, fit=True),
+            easydot.render(biology_dot, fit=True),
         ]
     )
     return
@@ -244,9 +244,9 @@ def _(easydot, mo, source_dot):
             mo.md("## 3. Source loading"),
             mo.hstack(
                 [
-                    mo.vstack([mo.md("**`source='auto'`**"), easydot.display(source_dot, source="auto", fit=True)]),
-                    mo.vstack([mo.md("**`source='local'`**"), easydot.display(source_dot, source="local", fit=True)]),
-                    mo.vstack([mo.md("**`source='cdn'`**"), easydot.display(source_dot, source="cdn", fit=True)]),
+                    mo.vstack([mo.md("**`source='auto'`**"), easydot.render(source_dot, source="auto", fit=True)]),
+                    mo.vstack([mo.md("**`source='local'`**"), easydot.render(source_dot, source="local", fit=True)]),
+                    mo.vstack([mo.md("**`source='cdn'`**"), easydot.render(source_dot, source="cdn", fit=True)]),
                 ],
                 wrap=True,
             ),
@@ -308,9 +308,9 @@ def _(easydot, mo, wide_dot):
             mo.md("## 4. Fit modes for notebook cells"),
             mo.hstack(
                 [
-                    mo.vstack([mo.md("**Natural size**"), easydot.display(wide_dot, fit=False)]),
-                    mo.vstack([mo.md("**`fit='horizontal'`**"), easydot.display(wide_dot, fit="horizontal")]),
-                    mo.vstack([mo.md("**`fit=True`**"), easydot.display(wide_dot, fit=True)]),
+                    mo.vstack([mo.md("**Natural size**"), easydot.render(wide_dot, fit=False)]),
+                    mo.vstack([mo.md("**`fit='horizontal'`**"), easydot.render(wide_dot, fit="horizontal")]),
+                    mo.vstack([mo.md("**`fit=True`**"), easydot.render(wide_dot, fit=True)]),
                 ],
                 wrap=True,
             ),
@@ -357,19 +357,19 @@ def _(easydot, mo, tall_dot):
                     mo.vstack(
                         [
                             mo.md("**Natural size**"),
-                            easydot.display(tall_dot, fit=False, iframe_height="360px"),
+                            easydot.render(tall_dot, fit=False, iframe_height="360px"),
                         ]
                     ),
                     mo.vstack(
                         [
                             mo.md("**`fit='vertical'`**"),
-                            easydot.display(tall_dot, fit="vertical", iframe_height="360px"),
+                            easydot.render(tall_dot, fit="vertical", iframe_height="360px"),
                         ]
                     ),
                     mo.vstack(
                         [
                             mo.md("**`fit=True`**"),
-                            easydot.display(tall_dot, fit=True, iframe_height="360px"),
+                            easydot.render(tall_dot, fit=True, iframe_height="360px"),
                         ]
                     ),
                 ],
@@ -387,9 +387,9 @@ def _(biology_dot, easydot, mo):
             mo.md("## 6. Scale and toolbar"),
             mo.hstack(
                 [
-                    mo.vstack([mo.md("**`scale=0.7`**"), easydot.display(biology_dot, scale=0.7)]),
-                    mo.vstack([mo.md("**`scale=1.15`**"), easydot.display(biology_dot, scale=1.15)]),
-                    mo.vstack([mo.md("**Toolbar off**"), easydot.display(biology_dot, fit=True, toolbar=False)]),
+                    mo.vstack([mo.md("**`scale=0.7`**"), easydot.render(biology_dot, scale=0.7)]),
+                    mo.vstack([mo.md("**`scale=1.15`**"), easydot.render(biology_dot, scale=1.15)]),
+                    mo.vstack([mo.md("**Toolbar off**"), easydot.render(biology_dot, fit=True, toolbar=False)]),
                 ],
                 wrap=True,
             ),
@@ -425,7 +425,7 @@ def _(easydot, mo):
             mo.md("## 7. Engine selection"),
             mo.hstack(
                 [
-                    mo.vstack([mo.md(f"**{engine}**"), easydot.display(engine_dot, engine=engine, fit=True)])
+                    mo.vstack([mo.md(f"**{engine}**"), easydot.render(engine_dot, engine=engine, fit=True)])
                     for engine in ("dot", "neato", "fdp", "sfdp", "circo", "twopi")
                 ],
                 wrap=True,
@@ -442,9 +442,9 @@ def _(easydot, mo, source_dot):
             mo.md("## 8. Worker rendering"),
             mo.hstack(
                 [
-                    mo.vstack([mo.md("**default (`worker=False`)**"), easydot.display(source_dot, fit=True)]),
-                    mo.vstack([mo.md("**`worker='auto'`**"), easydot.display(source_dot, worker="auto", fit=True)]),
-                    mo.vstack([mo.md("**`worker=True`**"), easydot.display(source_dot, worker=True, fit=True)]),
+                    mo.vstack([mo.md("**default (`worker=False`)**"), easydot.render(source_dot, fit=True)]),
+                    mo.vstack([mo.md("**`worker='auto'`**"), easydot.render(source_dot, worker="auto", fit=True)]),
+                    mo.vstack([mo.md("**`worker=True`**"), easydot.render(source_dot, worker=True, fit=True)]),
                 ],
                 wrap=True,
             ),
@@ -490,7 +490,7 @@ def _(easydot, large_dot, mo):
         [
             mo.md("## 9. Large graph rendering"),
             mo.md("Random 1000-node graph rendered with `engine='sfdp'` and `worker=True`."),
-            easydot.display(large_dot, engine="sfdp", worker=True, fit="horizontal"),
+            easydot.render(large_dot, engine="sfdp", worker=True, fit="horizontal"),
         ]
     )
     return
@@ -509,10 +509,39 @@ def _(mo):
     not rendered in this demo:
 
     ```python
-    easydot.display(biology_dot, iframe=False)
+    easydot.render(biology_dot, iframe=False)
     ```
     """)
     return
+
+
+@app.cell
+def _(easydot, mo, source_dot):
+    caps = easydot.capabilities()
+    cells = []
+    for _backend in ("browser", "wasm", "native"):
+        if caps[_backend].available:
+            cells.append(
+                mo.vstack([
+                    mo.md(f"**`backend='{_backend}'`**"),
+                    easydot.render(source_dot, backend=_backend, fit="horizontal"),
+                ])
+            )
+    return mo.vstack([
+        mo.md("## 11. Fit works on all backends"),
+        mo.md("`fit='horizontal'` applied to each available backend — same CSS classes, same layout."),
+        mo.hstack(cells, wrap=True),
+    ])
+
+
+@app.cell
+def _(easydot, mo, source_dot):
+    return mo.vstack([
+        mo.md("## 12. Raw SVG from wasm/native"),
+        mo.md("`easydot.svg()` returns a plain SVG string synchronously. "
+              "Only wasm and native backends are supported."),
+        mo.code(easydot.svg(source_dot, backend="auto")[:500] + "..."),
+    ])
 
 
 if __name__ == "__main__":

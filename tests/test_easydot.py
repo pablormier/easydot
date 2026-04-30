@@ -10,6 +10,8 @@ from urllib.request import urlopen
 import pytest
 
 import easydot
+from easydot import _capabilities
+from easydot import _html
 from easydot import _native
 from easydot import _server
 from easydot._html import DEFAULT_CDN_URL
@@ -44,7 +46,7 @@ def test_asset_urls_serves_bundled_module():
 
 
 def test_html_uses_local_module_url():
-    rendered = easydot.html("digraph { A -> B }", source="local")
+    rendered = easydot.html("digraph { A -> B }", backend="browser", source="local")
 
     assert "http://127.0.0.1:" in rendered
     assert "Graphviz.load" in rendered
@@ -56,7 +58,7 @@ def test_html_accepts_pydot_like_object():
         def to_string(self) -> str:
             return "digraph { A -> B }"
 
-    rendered = easydot.html(Graph(), source="cdn")
+    rendered = easydot.html(Graph(), backend="browser", source="cdn")
 
     assert "Graphviz.load" in rendered
     assert "digraph { A -> B }" not in rendered
@@ -75,7 +77,7 @@ def test_display_accepts_pydot_like_object():
 
 def test_html_rejects_unsupported_dot_input():
     with pytest.raises(TypeError, match="DOT string or an object with a to_string"):
-        easydot.html(object(), source="cdn")
+        easydot.html(object(), backend="browser", source="cdn")
 
 
 def test_html_rejects_non_string_to_string_result():
@@ -84,11 +86,11 @@ def test_html_rejects_non_string_to_string_result():
             return b"digraph { A -> B }"
 
     with pytest.raises(TypeError, match=r"dot\.to_string\(\) must return a string"):
-        easydot.html(Graph(), source="cdn")
+        easydot.html(Graph(), backend="browser", source="cdn")
 
 
 def test_html_auto_includes_local_fallback_after_cdn_url():
-    rendered = easydot.html("digraph { A -> B }")
+    rendered = easydot.html("digraph { A -> B }", backend="browser")
 
     assert "http://127.0.0.1:" in rendered
     assert DEFAULT_CDN_URL in rendered
@@ -97,7 +99,7 @@ def test_html_auto_includes_local_fallback_after_cdn_url():
 
 
 def test_html_shares_graphviz_instance_across_renders():
-    rendered = easydot.html("digraph { A -> B }", source="cdn")
+    rendered = easydot.html("digraph { A -> B }", backend="browser", source="cdn")
 
     assert "globalThis.__easydot__" in rendered
     assert "graphvizCache" in rendered
@@ -120,7 +122,7 @@ def test_asset_server_registers_shutdown_once_after_restart(monkeypatch):
 
 
 def test_html_cdn_source_avoids_local_url():
-    rendered = easydot.html("digraph { A -> B }", source="cdn")
+    rendered = easydot.html("digraph { A -> B }", backend="browser", source="cdn")
 
     assert DEFAULT_CDN_URL in rendered
     assert "http://127.0.0.1:" not in rendered
@@ -129,7 +131,7 @@ def test_html_cdn_source_avoids_local_url():
 def test_html_auto_source_can_be_overridden_by_env(monkeypatch):
     monkeypatch.setenv("EASYDOT_SOURCE", "cdn")
 
-    rendered = easydot.html("digraph { A -> B }")
+    rendered = easydot.html("digraph { A -> B }", backend="browser")
 
     assert DEFAULT_CDN_URL in rendered
     assert "http://127.0.0.1:" not in rendered
@@ -138,7 +140,7 @@ def test_html_auto_source_can_be_overridden_by_env(monkeypatch):
 def test_html_explicit_source_wins_over_env(monkeypatch):
     monkeypatch.setenv("EASYDOT_SOURCE", "cdn")
 
-    rendered = easydot.html("digraph { A -> B }", source="local")
+    rendered = easydot.html("digraph { A -> B }", backend="browser", source="local")
 
     assert "http://127.0.0.1:" in rendered
     assert DEFAULT_CDN_URL not in rendered
@@ -148,7 +150,7 @@ def test_html_rejects_invalid_env_source(monkeypatch):
     monkeypatch.setenv("EASYDOT_SOURCE", "offline")
 
     with pytest.raises(ValueError, match="source must be 'auto', 'local', or 'cdn'"):
-        easydot.html("digraph { A -> B }")
+        easydot.html("digraph { A -> B }", backend="browser")
 
 
 def test_display_exposes_rich_reprs():
@@ -184,14 +186,14 @@ def test_display_publishes_html_in_ipython(monkeypatch):
 
 
 def test_html_defaults_omit_fit_and_scale():
-    rendered = easydot.html("digraph { A -> B }", source="cdn")
+    rendered = easydot.html("digraph { A -> B }", backend="browser", source="cdn")
 
     assert 'const fit = "none";' in rendered
     assert "const scale = 1.0;" in rendered
 
 
 def test_html_defaults_to_disabled_worker_mode():
-    rendered = easydot.html("digraph { A -> B }", source="cdn")
+    rendered = easydot.html("digraph { A -> B }", backend="browser", source="cdn")
 
     assert 'const workerMode = "disabled";' in rendered
     assert "const showSpinner = true;" in rendered
@@ -201,14 +203,14 @@ def test_html_defaults_to_disabled_worker_mode():
 
 
 def test_html_spinner_false_disables_spinner_icon():
-    rendered = easydot.html("digraph { A -> B }", source="cdn", spinner=False)
+    rendered = easydot.html("digraph { A -> B }", backend="browser", source="cdn", spinner=False)
 
     assert "const showSpinner = false;" in rendered
     assert "showSpinner ? '<span class=\"easydot-spinner\"" in rendered
 
 
 def test_html_worker_auto_tries_worker_with_fallback():
-    rendered = easydot.html("digraph { A -> B }", source="cdn", worker="auto")
+    rendered = easydot.html("digraph { A -> B }", backend="browser", source="cdn", worker="auto")
 
     assert 'const workerMode = "auto";' in rendered
     assert "new Worker(url, { type: \"module\" })" in rendered
@@ -218,7 +220,7 @@ def test_html_worker_auto_tries_worker_with_fallback():
 
 
 def test_html_worker_true_requires_worker():
-    rendered = easydot.html("digraph { A -> B }", source="cdn", worker=True)
+    rendered = easydot.html("digraph { A -> B }", backend="browser", source="cdn", worker=True)
 
     assert 'const workerMode = "require";' in rendered
     assert "Web Worker rendering was required but failed" in rendered
@@ -226,7 +228,7 @@ def test_html_worker_true_requires_worker():
 
 
 def test_html_worker_false_disables_worker():
-    rendered = easydot.html("digraph { A -> B }", source="cdn", worker=False)
+    rendered = easydot.html("digraph { A -> B }", backend="browser", source="cdn", worker=False)
 
     assert 'const workerMode = "disabled";' in rendered
     assert 'showStatus(message, state, false);' in rendered
@@ -234,11 +236,11 @@ def test_html_worker_false_disables_worker():
 
 def test_html_rejects_unknown_worker_value():
     with pytest.raises(ValueError, match="worker must be 'auto', True, or False"):
-        easydot.html("digraph { A -> B }", source="cdn", worker="require")
+        easydot.html("digraph { A -> B }", backend="browser", source="cdn", worker="require")
 
 
 def test_html_fit_true_enables_both_mode():
-    rendered = easydot.html("digraph { A -> B }", source="cdn", fit=True, scale=1.5)
+    rendered = easydot.html("digraph { A -> B }", backend="browser", source="cdn", fit=True, scale=1.5)
 
     assert 'const fit = "both";' in rendered
     assert "const scale = 1.5;" in rendered
@@ -250,7 +252,7 @@ def test_html_fit_true_enables_both_mode():
 
 
 def test_html_fit_horizontal_uses_css_responsiveness():
-    rendered = easydot.html("digraph { A -> B }", source="cdn", fit="horizontal", scale=1.5)
+    rendered = easydot.html("digraph { A -> B }", backend="browser", source="cdn", fit="horizontal", scale=1.5)
 
     assert 'const fit = "horizontal";' in rendered
     assert 'class="easydot-fit-horizontal"' in rendered
@@ -263,7 +265,7 @@ def test_html_fit_horizontal_uses_css_responsiveness():
 
 
 def test_html_fit_vertical_uses_flex_viewport():
-    rendered = easydot.html("digraph { A -> B }", source="cdn", fit="vertical")
+    rendered = easydot.html("digraph { A -> B }", backend="browser", source="cdn", fit="vertical")
 
     assert 'const fit = "vertical";' in rendered
     assert 'class="easydot-fit-vertical"' in rendered
@@ -278,18 +280,18 @@ def test_html_fit_vertical_uses_flex_viewport():
 
 def test_html_viewport_fits_skip_frame_height_sync():
     for fit in ("vertical", "both"):
-        rendered = easydot.html("digraph { A -> B }", source="cdn", fit=fit)
+        rendered = easydot.html("digraph { A -> B }", backend="browser", source="cdn", fit=fit)
         assert "if (!isViewportFit)" in rendered
         assert "syncFrameHeight" in rendered
 
 
 def test_html_rejects_unknown_fit_value():
     with pytest.raises(ValueError):
-        easydot.html("digraph { A -> B }", source="cdn", fit="diagonal")
+        easydot.html("digraph { A -> B }", backend="browser", source="cdn", fit="diagonal")
 
 
 def test_html_scale_without_fit_adds_scaled_class_via_js():
-    rendered = easydot.html("digraph { A -> B }", source="cdn", scale=2.0)
+    rendered = easydot.html("digraph { A -> B }", backend="browser", source="cdn", scale=2.0)
 
     assert 'class="easydot-fit-none"' in rendered
     assert "const scale = 2.0;" in rendered
@@ -304,7 +306,7 @@ def test_html_scale_without_fit_adds_scaled_class_via_js():
 
 
 def test_html_default_includes_toolbar():
-    rendered = easydot.html("digraph { A -> B }", source="cdn")
+    rendered = easydot.html("digraph { A -> B }", backend="browser", source="cdn")
 
     assert "data-easydot-toolbar" in rendered
     assert "data-easydot-copy" in rendered
@@ -315,7 +317,7 @@ def test_html_default_includes_toolbar():
 
 
 def test_html_toolbar_false_omits_toolbar():
-    rendered = easydot.html("digraph { A -> B }", source="cdn", toolbar=False)
+    rendered = easydot.html("digraph { A -> B }", backend="browser", source="cdn", toolbar=False)
 
     assert "data-easydot-toolbar" not in rendered
     assert "data-easydot-copy" not in rendered
@@ -698,9 +700,8 @@ def test_svg_display_mimebundle_contains_svg():
     bundle = obj._repr_mimebundle_()
 
     assert "image/svg+xml" in bundle
-    assert "text/plain" in bundle
+    assert "text/html" in bundle
     assert "<svg" in bundle["image/svg+xml"] or "<?xml" in bundle["image/svg+xml"]
-    assert bundle["text/plain"] == "digraph { A -> B }"
 
 
 def test_svg_display_repr_svg_returns_svg():
@@ -780,14 +781,13 @@ def test_display_native_svg_returns_native_svg_display():
 
 
 def test_native_svg_display_mimebundle_contains_svg(monkeypatch):
-    monkeypatch.setattr(_native, "native_svg", lambda dot, *, engine="dot": "<svg>A</svg>")
+    monkeypatch.setattr(_native, "native", lambda dot, *, engine="dot", format="svg": "<svg>A</svg>")
 
     bundle = easydot.NativeSvgDisplay("digraph { A -> B }")._repr_mimebundle_()
 
-    assert bundle == {
-        "image/svg+xml": "<svg>A</svg>",
-        "text/plain": "digraph { A -> B }",
-    }
+    assert "image/svg+xml" in bundle
+    assert "text/html" in bundle
+    assert bundle["image/svg+xml"] == "<svg>A</svg>"
 
 
 def test_svg_missing_dependency_raises_helpful_error(monkeypatch):
@@ -801,58 +801,603 @@ def test_svg_display_missing_dependency_raises_helpful_error(monkeypatch):
     monkeypatch.setitem(sys.modules, "wasi_graphviz", None)
 
     with pytest.raises(ImportError, match="wasi-graphviz"):
-        easydot.SvgDisplay("digraph { A -> B }")._render()
+        easydot.SvgDisplay("digraph { A -> B }")._repr_svg_()
 
 
-def test_render_browser_returns_dot_display():
-    obj = easydot.render("digraph { A -> B }")
+def test_render_browser_returns_graph():
+    obj = easydot.render("digraph { A -> B }", backend="browser")
 
-    assert isinstance(obj, easydot.DotDisplay)
+    assert isinstance(obj, easydot.Graph)
+    assert obj.backend == "browser"
 
 
-def test_render_wasm_returns_svg_display():
+def test_render_wasm_returns_graph():
     obj = easydot.render("digraph { A -> B }", backend="wasm")
 
-    assert isinstance(obj, easydot.SvgDisplay)
+    assert isinstance(obj, easydot.Graph)
+    assert obj.backend == "wasm"
 
 
-def test_render_native_returns_native_svg_display():
+def test_render_native_returns_graph():
     obj = easydot.render("digraph { A -> B }", backend="native")
 
-    assert isinstance(obj, easydot.NativeSvgDisplay)
+    assert isinstance(obj, easydot.Graph)
+    assert obj.backend == "native"
+
+
+def test_render_auto_prefers_native(monkeypatch):
+    monkeypatch.setattr(
+        easydot,
+        "capabilities",
+        lambda **kwargs: {
+            "browser": easydot.BackendCapability("browser", True, details={"local": True, "cdn": True}),
+            "wasm": easydot.BackendCapability("wasm", True),
+            "native": easydot.BackendCapability("native", True),
+        },
+    )
+
+    obj = easydot.render("digraph { A -> B }", backend="auto")
+
+    assert isinstance(obj, easydot.Graph)
+    assert obj._resolve_backend() == "native"
+
+
+def test_render_auto_falls_back_to_wasm(monkeypatch):
+    monkeypatch.setattr(
+        easydot,
+        "capabilities",
+        lambda **kwargs: {
+            "browser": easydot.BackendCapability("browser", True, details={"local": True, "cdn": True}),
+            "wasm": easydot.BackendCapability("wasm", True),
+            "native": easydot.BackendCapability("native", False, "missing"),
+        },
+    )
+
+    obj = easydot.render("digraph { A -> B }", backend="auto")
+
+    assert isinstance(obj, easydot.Graph)
+    assert obj._resolve_backend() == "wasm"
+
+
+def test_render_auto_prefers_browser_local_before_cdn(monkeypatch):
+    monkeypatch.setattr(
+        easydot,
+        "capabilities",
+        lambda **kwargs: {
+            "browser": easydot.BackendCapability("browser", True, details={"local": True, "cdn": True}),
+            "wasm": easydot.BackendCapability("wasm", False, "runtime"),
+            "native": easydot.BackendCapability("native", False, "missing"),
+        },
+    )
+
+    obj = easydot.render("digraph { A -> B }", backend="auto")
+    assert obj._resolve_backend() == "browser"
+    assert obj.source == "local"
+
+
+def test_render_auto_uses_browser_cdn_when_local_unavailable(monkeypatch):
+    monkeypatch.setattr(
+        easydot,
+        "capabilities",
+        lambda **kwargs: {
+            "browser": easydot.BackendCapability("browser", True, details={"local": False, "cdn": True}),
+            "wasm": easydot.BackendCapability("wasm", False, "runtime"),
+            "native": easydot.BackendCapability("native", False, "missing"),
+        },
+    )
+
+    obj = easydot.render("digraph { A -> B }", backend="auto")
+    assert obj._resolve_backend() == "browser"
+    assert obj.source == "cdn"
+
+
+def test_render_auto_honors_explicit_browser_source(monkeypatch):
+    monkeypatch.setattr(
+        easydot,
+        "capabilities",
+        lambda **kwargs: {
+            "browser": easydot.BackendCapability("browser", True, details={"local": True, "cdn": True}),
+            "wasm": easydot.BackendCapability("wasm", False, "runtime"),
+            "native": easydot.BackendCapability("native", False, "missing"),
+        },
+    )
+
+    obj = easydot.render("digraph { A -> B }", backend="auto", source="cdn")
+    assert obj._resolve_backend() == "browser"
+    assert obj.source == "cdn"
+
+
+def test_render_auto_forwards_capability_options_only_to_probe(monkeypatch):
+    calls = []
+
+    def fake_capabilities(**kwargs):
+        calls.append(kwargs)
+        return {
+            "browser": easydot.BackendCapability("browser", True, details={"local": True, "cdn": False}),
+            "wasm": easydot.BackendCapability("wasm", False, "runtime"),
+            "native": easydot.BackendCapability("native", False, "missing"),
+        }
+
+    monkeypatch.setattr(easydot, "capabilities", fake_capabilities)
+
+    obj = easydot.render(
+        "digraph { A -> B }",
+        backend="auto",
+        engine="neato",
+        capability_timeout=0.1,
+        check_cdn=False,
+    )
+    obj._resolve_backend()  # trigger probe
+
+    assert calls == [{"engine": "neato", "timeout": 0.1, "check_cdn": False, "refresh": False}]
+    assert obj.source == "local"
+    assert obj.engine == "neato"
+
+
+def test_render_auto_can_refresh_capability_cache(monkeypatch):
+    calls = []
+
+    def fake_capabilities(**kwargs):
+        calls.append(kwargs)
+        return {
+            "browser": easydot.BackendCapability("browser", True, details={"local": True, "cdn": False}),
+            "wasm": easydot.BackendCapability("wasm", False, "runtime"),
+            "native": easydot.BackendCapability("native", False, "missing"),
+        }
+
+    monkeypatch.setattr(easydot, "capabilities", fake_capabilities)
+
+    obj = easydot.render("digraph { A -> B }", backend="auto", refresh_capabilities=True)
+    obj._resolve_backend()  # trigger probe
+
+    assert calls == [{"engine": "dot", "timeout": 2.0, "check_cdn": True, "refresh": True}]
+
+
+def test_render_auto_raises_when_no_backend_is_available(monkeypatch):
+    monkeypatch.setattr(
+        easydot,
+        "capabilities",
+        lambda **kwargs: {
+            "browser": easydot.BackendCapability(
+                "browser", False, "offline", details={"local": False, "cdn": False}
+            ),
+            "wasm": easydot.BackendCapability("wasm", False, "runtime"),
+            "native": easydot.BackendCapability("native", False, "missing"),
+        },
+    )
+
+    with pytest.raises(RuntimeError, match="no easydot backend is available"):
+        easydot.render("digraph { A -> B }", backend="auto")._resolve_backend()
 
 
 def test_render_forwards_kwargs():
-    obj = easydot.render("digraph { A -> B }", source="cdn")
+    obj = easydot.render("digraph { A -> B }", backend="browser", source="cdn")
 
-    assert isinstance(obj, easydot.DotDisplay)
+    assert isinstance(obj, easydot.Graph)
     assert DEFAULT_CDN_URL in obj._body_html()
 
 
 def test_render_rejects_unknown_backend():
-    with pytest.raises(ValueError, match="backend must be 'browser', 'wasm', or 'native'"):
+    with pytest.raises(ValueError, match="backend must be 'auto', 'browser', 'wasm', or 'native'"):
         easydot.render("digraph { A -> B }", backend="missing")
 
 
 def test_to_string_browser_returns_html():
-    result = easydot.to_string("digraph { A -> B }")
+    with pytest.warns(DeprecationWarning):
+        result = easydot.to_string("digraph { A -> B }", backend="browser")
 
     assert "<" in result
     assert isinstance(result, str)
 
 
 def test_to_string_wasm_returns_svg():
-    result = easydot.to_string("digraph { A -> B }", backend="wasm")
+    with pytest.warns(DeprecationWarning):
+        result = easydot.to_string("digraph { A -> B }", backend="wasm")
 
     assert ("<svg" in result or "<?xml" in result) and isinstance(result, str)
 
 
 def test_to_string_native_returns_svg(monkeypatch):
-    monkeypatch.setattr(easydot, "native_svg", lambda dot, *, engine="dot": "<svg>A</svg>")
+    monkeypatch.setattr(_native, "native_svg", lambda dot, *, engine="dot": "<svg>A</svg>")
 
-    assert easydot.to_string("digraph { A -> B }", backend="native") == "<svg>A</svg>"
+    with pytest.warns(DeprecationWarning):
+        result = easydot.to_string("digraph { A -> B }", backend="native")
+
+    assert result == "<svg>A</svg>"
+
+
+def test_to_string_auto_uses_selected_backend(monkeypatch):
+    monkeypatch.setattr(
+        easydot,
+        "capabilities",
+        lambda **kwargs: {
+            "browser": easydot.BackendCapability("browser", True, details={"local": True, "cdn": False}),
+            "wasm": easydot.BackendCapability("wasm", False, "runtime"),
+            "native": easydot.BackendCapability("native", False, "missing"),
+        },
+    )
+    monkeypatch.setattr(_html, "html", lambda dot, **kwargs: f"source={kwargs['source']}")
+
+    with pytest.warns(DeprecationWarning):
+        result = easydot.to_string("digraph { A -> B }", backend="auto")
+
+    assert result == "source=local"
 
 
 def test_to_string_rejects_unknown_backend():
-    with pytest.raises(ValueError, match="backend must be 'browser', 'wasm', or 'native'"):
+    with pytest.raises(ValueError, match="backend must be 'auto', 'browser', 'wasm', or 'native'"):
         easydot.to_string("digraph { A -> B }", backend="missing")
+
+
+def test_capabilities_reports_available_backends(monkeypatch):
+    _capabilities.clear_capability_cache()
+    monkeypatch.setattr(
+        _capabilities,
+        "_browser_capability",
+        lambda *, timeout, check_cdn: easydot.BackendCapability(
+            "browser", True, details={"local": True, "cdn": False}
+        ),
+    )
+    monkeypatch.setattr(
+        _capabilities,
+        "_wasm_capability",
+        lambda *, engine: easydot.BackendCapability("wasm", True, details={"engine": engine}),
+    )
+    monkeypatch.setattr(
+        _capabilities,
+        "_native_capability",
+        lambda *, engine: easydot.BackendCapability("native", False, "missing"),
+    )
+
+    caps = easydot.capabilities(engine="neato", timeout=0.5, check_cdn=False)
+
+    assert caps.keys() == {"browser", "wasm", "native"}
+    assert caps["browser"].available is True
+    assert caps["wasm"].details == {"engine": "neato"}
+    assert caps["native"].available is False
+    assert easydot.available_backends(engine="neato", timeout=0.5, check_cdn=False) == [
+        "browser",
+        "wasm",
+    ]
+
+
+def test_capabilities_caches_probe_results(monkeypatch):
+    _capabilities.clear_capability_cache()
+    calls = []
+
+    def fake_browser_capability(*, timeout, check_cdn):
+        calls.append(("browser", timeout, check_cdn))
+        return easydot.BackendCapability("browser", True, details={"local": True, "cdn": False})
+
+    def fake_wasm_capability(*, engine):
+        calls.append(("wasm", engine))
+        return easydot.BackendCapability("wasm", False, "runtime")
+
+    def fake_native_capability(*, engine):
+        calls.append(("native", engine))
+        return easydot.BackendCapability("native", False, "missing")
+
+    monkeypatch.setattr(_capabilities, "_browser_capability", fake_browser_capability)
+    monkeypatch.setattr(_capabilities, "_wasm_capability", fake_wasm_capability)
+    monkeypatch.setattr(_capabilities, "_native_capability", fake_native_capability)
+
+    first = easydot.capabilities(engine="dot", timeout=0.5, check_cdn=False)
+    second = easydot.capabilities(engine="dot", timeout=0.5, check_cdn=False)
+
+    assert first is second
+    assert calls == [
+        ("browser", 0.5, False),
+        ("wasm", "dot"),
+        ("native", "dot"),
+    ]
+
+
+def test_capabilities_refresh_bypasses_cache(monkeypatch):
+    _capabilities.clear_capability_cache()
+    calls = []
+
+    monkeypatch.setattr(
+        _capabilities,
+        "_browser_capability",
+        lambda *, timeout, check_cdn: calls.append("browser")
+        or easydot.BackendCapability("browser", True, details={"local": True, "cdn": False}),
+    )
+    monkeypatch.setattr(
+        _capabilities,
+        "_wasm_capability",
+        lambda *, engine: calls.append("wasm") or easydot.BackendCapability("wasm", False),
+    )
+    monkeypatch.setattr(
+        _capabilities,
+        "_native_capability",
+        lambda *, engine: calls.append("native") or easydot.BackendCapability("native", False),
+    )
+
+    easydot.capabilities(engine="dot", timeout=0.5, check_cdn=False)
+    easydot.capabilities(engine="dot", timeout=0.5, check_cdn=False, refresh=True)
+
+    assert calls == ["browser", "wasm", "native", "browser", "wasm", "native"]
+
+
+def test_browser_capability_checks_local_and_cdn_sources(monkeypatch):
+    monkeypatch.setattr(_capabilities, "asset_urls", lambda: {"js": "http://local/module.js"})
+
+    calls = []
+
+    def fake_probe(url, *, timeout):
+        calls.append((url, timeout))
+        if url == "http://local/module.js":
+            return True, None
+        return False, "offline"
+
+    monkeypatch.setattr(_capabilities, "_probe_url", fake_probe)
+
+    capability = _capabilities._browser_capability(timeout=0.25, check_cdn=True)
+
+    assert capability.available is True
+    assert capability.details["local"] is True
+    assert capability.details["cdn"] is False
+    assert capability.details["cdn_reason"] == "offline"
+    assert calls == [
+        ("http://local/module.js", 0.25),
+        (_capabilities.DEFAULT_CDN_URL, 0.25),
+    ]
+
+
+def test_browser_capability_reports_source_failures(monkeypatch):
+    monkeypatch.setattr(_capabilities, "asset_urls", lambda: {"js": "http://local/module.js"})
+    monkeypatch.setattr(_capabilities, "_probe_url", lambda url, *, timeout: (False, "blocked"))
+
+    capability = _capabilities._browser_capability(timeout=0.25, check_cdn=True)
+
+    assert capability.available is False
+    assert "neither local browser assets nor CDN assets" in capability.reason
+    assert capability.details["local_reason"] == "blocked"
+    assert capability.details["cdn_reason"] == "blocked"
+
+
+def test_browser_capability_can_skip_cdn_check(monkeypatch):
+    monkeypatch.setattr(_capabilities, "asset_urls", lambda: {"js": "http://local/module.js"})
+    monkeypatch.setattr(_capabilities, "_probe_url", lambda url, *, timeout: (True, None))
+
+    capability = _capabilities._browser_capability(timeout=0.25, check_cdn=False)
+
+    assert capability.available is True
+    assert capability.details["local"] is True
+    assert capability.details["cdn"] is False
+    assert capability.details["cdn_reason"] == "not checked"
+
+
+def test_wasm_capability_renders_probe_instead_of_only_checking_import(monkeypatch):
+    calls = []
+
+    def fake_svg(dot, *, engine):
+        calls.append((dot, engine))
+        return "<svg></svg>"
+
+    monkeypatch.setattr(_capabilities, "svg", fake_svg)
+
+    capability = _capabilities._wasm_capability(engine="dot")
+
+    assert capability.available is True
+    assert calls == [(_capabilities._PROBE_DOT, "dot")]
+
+
+def test_wasm_capability_reports_runtime_failure(monkeypatch):
+    def fake_svg(dot, *, engine):
+        raise RuntimeError("WASI runtime unavailable")
+
+    monkeypatch.setattr(_capabilities, "svg", fake_svg)
+
+    capability = _capabilities._wasm_capability(engine="dot")
+
+    assert capability.available is False
+    assert capability.reason == "RuntimeError: WASI runtime unavailable"
+
+
+def test_native_capability_renders_probe_instead_of_only_checking_executable(monkeypatch):
+    calls = []
+
+    def fake_native_svg(dot, *, engine):
+        calls.append((dot, engine))
+        return "<?xml version='1.0'?><svg></svg>"
+
+    monkeypatch.setattr(_capabilities, "native_svg", fake_native_svg)
+
+    capability = _capabilities._native_capability(engine="neato")
+
+    assert capability.available is True
+    assert capability.details == {"engine": "neato"}
+    assert calls == [(_capabilities._PROBE_DOT, "neato")]
+
+
+def test_native_capability_reports_subprocess_failure(monkeypatch):
+    def fake_native_svg(dot, *, engine):
+        raise RuntimeError("Native Graphviz executable 'dot' was not found")
+
+    monkeypatch.setattr(_capabilities, "native_svg", fake_native_svg)
+
+    capability = _capabilities._native_capability(engine="dot")
+
+    assert capability.available is False
+    assert capability.reason == "RuntimeError: Native Graphviz executable 'dot' was not found"
+    assert capability.details == {"engine": "dot"}
+
+
+# ---------- New API tests ----------
+
+def test_html_wasm_includes_fit_classes():
+    result = easydot.html("digraph { A -> B }", backend="wasm", fit="horizontal")
+
+    assert "easydot-fit-horizontal" in result
+    assert "--easydot-nat-w:" in result
+    assert "--easydot-nat-h:" in result
+    assert "data-easydot-toolbar" in result
+
+
+def test_html_native_matches_wasm_wrapper_structure(monkeypatch):
+    svg_stub = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 134 116" width="134pt" height="116pt"></svg>'
+    monkeypatch.setattr(_native, "native", lambda dot, *, engine="dot", format="svg": svg_stub)
+
+    result = easydot.html("digraph { A -> B }", backend="native", fit="horizontal")
+
+    assert "easydot-fit-horizontal" in result
+    assert "--easydot-nat-w:134" in result
+    assert "--easydot-nat-h:116" in result
+
+
+def test_html_static_backend_rejects_browser_source():
+    import pytest
+    with pytest.raises(TypeError, match="source is only supported by backend='browser'"):
+        easydot.html("digraph { A -> B }", backend="wasm", source="cdn")
+
+
+def test_html_static_backend_rejects_worker():
+    import pytest
+    with pytest.raises(TypeError, match="worker is only supported by backend='browser'"):
+        easydot.html("digraph { A -> B }", backend="wasm", worker=True)
+
+
+def test_extract_viewbox_handles_negative_origin():
+    from easydot._display import extract_viewbox
+    svg = '<svg viewBox="-4 -4 138 124"></svg>'
+    w, h = extract_viewbox(svg)
+    assert w == 138.0
+    assert h == 124.0
+
+
+def test_extract_viewbox_uses_viewbox_not_pt_dimensions():
+    from easydot._display import extract_viewbox
+    svg = '<svg width="134pt" height="116pt" viewBox="0 0 134 116"></svg>'
+    w, h = extract_viewbox(svg)
+    assert w == 134.0
+    assert h == 116.0
+
+
+def test_inline_svg_strips_xml_prolog_and_doctype():
+    from easydot._display import inline_svg
+    raw = '<?xml version="1.0"?><!DOCTYPE svg PUBLIC "...">\n<!-- comment -->\n<svg viewBox="0 0 10 10" width="10pt" height="10pt"><g/></svg>'
+    result = inline_svg(raw)
+    assert result.startswith("<svg")
+    assert "<?xml" not in result
+    assert "<!DOCTYPE" not in result
+    assert 'width="100%"' in result
+    assert 'height="100%"' in result
+    assert 'viewBox="0 0 10 10"' in result
+
+
+def test_svg_browser_backend_raises():
+    with pytest.raises(ValueError, match="backend='browser' renders in the browser at view-time"):
+        easydot.svg("digraph { A -> B }", backend="browser")
+
+
+def test_svg_auto_skips_browser(monkeypatch):
+    monkeypatch.setattr(
+        easydot,
+        "capabilities",
+        lambda **kwargs: {
+            "browser": easydot.BackendCapability("browser", True, details={"local": True, "cdn": True}),
+            "wasm": easydot.BackendCapability("wasm", False, "runtime"),
+            "native": easydot.BackendCapability("native", False, "missing"),
+        },
+    )
+    with pytest.raises(RuntimeError, match="no SVG-producing backend is available"):
+        easydot.svg("digraph { A -> B }", backend="auto")
+
+
+def test_native_binary_format_returns_bytes(monkeypatch):
+    fake_png = b"\x89PNG\r\n\x1a\n"
+    monkeypatch.setattr(
+        _native.subprocess,
+        "run",
+        lambda *args, **kwargs: __import__("subprocess").CompletedProcess(args, 0, fake_png, b""),
+    )
+    result = easydot.native("digraph { A -> B }", format="png")
+    assert isinstance(result, bytes)
+    assert result == fake_png
+
+
+def test_to_string_emits_deprecation_warning():
+    with pytest.warns(DeprecationWarning, match="to_string.*deprecated"):
+        easydot.to_string("digraph { A -> B }", backend="wasm")
+
+
+def test_static_toolbar_copy_button_present():
+    result = easydot.html("digraph { A -> B }", backend="wasm", toolbar=True)
+    assert "data-easydot-copy" in result
+    assert "data-easydot-download" in result
+    # SVG is inlined as base64 in a data-svg attribute
+    assert "data-svg=" in result
+
+
+def test_graph_repr_mimebundle_browser_omits_svg():
+    obj = easydot.render("digraph { A -> B }", backend="browser")
+    bundle = obj._repr_mimebundle_()
+    assert "text/html" in bundle
+    assert "image/svg+xml" not in bundle
+
+
+def test_graph_repr_mimebundle_wasm_includes_html_and_svg():
+    obj = easydot.render("digraph { A -> B }", backend="wasm")
+    bundle = obj._repr_mimebundle_()
+    assert "text/html" in bundle
+    assert "image/svg+xml" in bundle
+
+
+def test_static_viewport_fit_uses_iframe_with_default_height():
+    obj = easydot.render("digraph { A -> B }", backend="wasm", fit="both")
+    mime, payload = obj._mime_()
+    assert mime == "text/html"
+    assert "<iframe" in payload
+    assert "height=" in payload
+
+
+def test_deprecated_display_svg_emits_warning():
+    with pytest.warns(DeprecationWarning):
+        obj = easydot.display_svg("digraph { A -> B }")
+    assert isinstance(obj, easydot.SvgDisplay)
+
+
+def test_deprecated_display_native_svg_emits_warning():
+    with pytest.warns(DeprecationWarning):
+        obj = easydot.display_native_svg("digraph { A -> B }")
+    assert isinstance(obj, easydot.NativeSvgDisplay)
+
+
+def test_cli_fit_and_scale_forwarded(monkeypatch, capsys):
+    from easydot._cli import main
+    monkeypatch.setattr("sys.stdin", type("MockStdin", (), {"read": lambda: "digraph { A -> B }"}))
+    monkeypatch.setattr("sys.argv", ["easydot", "--backend", "wasm", "--fit", "horizontal", "--scale", "1.5"])
+    assert main() == 0
+    captured = capsys.readouterr()
+    assert "easydot-fit-horizontal" in captured.out
+    assert "easydot-scaled" in captured.out
+    assert "--easydot-scale:1.5000" in captured.out
+
+
+def test_cli_format_svg_uses_svg_dispatcher(monkeypatch, capsys):
+    from easydot._cli import main
+    monkeypatch.setattr("sys.stdin", type("MockStdin", (), {"read": lambda: "digraph { A -> B }"}))
+    monkeypatch.setattr("sys.argv", ["easydot", "--backend", "wasm", "--format", "svg"])
+    assert main() == 0
+    captured = capsys.readouterr()
+    assert "<svg" in captured.out
+    assert "easydot-fit" not in captured.out
+
+
+def test_cli_format_png_returns_bytes_to_stdout(monkeypatch, capsys):
+    from easydot._cli import main
+    monkeypatch.setattr("sys.stdin", type("MockStdin", (), {"read": lambda: "digraph { A -> B }"}))
+    monkeypatch.setattr("sys.argv", ["easydot", "--backend", "native", "--format", "png"])
+    
+    written_bytes = b""
+    def mock_write(b):
+        nonlocal written_bytes
+        written_bytes += b
+    
+    monkeypatch.setattr("sys.stdout.buffer.write", mock_write)
+    monkeypatch.setattr(_native.subprocess, "run", lambda *args, **kwargs: __import__("subprocess").CompletedProcess(args, 0, b"fake_png_data", b""))
+    
+    assert main() == 0
+    assert written_bytes == b"fake_png_data"
+

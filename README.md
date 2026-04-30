@@ -2,7 +2,7 @@
 
 <img src="assets/easydot-logo.png" alt="easydot" width="300">
 
-**Graphviz rendered in the browser or notebook, from one line of Python.**
+**High-quality Graphviz plots from Python, with browser, WASM, and native backends.**
 
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-3776ab?logo=python&logoColor=white)](https://www.python.org)
 [![pip install easydot](https://img.shields.io/badge/pip%20install-easydot-blue?logo=pypi&logoColor=white)](https://pypi.org/project/easydot/)
@@ -19,7 +19,7 @@ pip install easydot
 ```python
 import easydot
 
-easydot.display("digraph { A -> B -> C }")
+easydot.render("digraph { A -> B -> C }")
 ```
 
 ## Example
@@ -30,13 +30,18 @@ easydot.display("digraph { A -> B -> C }")
 
 ## 💡 Why easydot
 
-Graphviz usually requires a native `dot` binary. That's fine on a laptop, but painful in CI images, slim containers, shared clusters, and browser runtimes like JupyterLite, Pyodide, or marimo. `easydot` packages browser rendering so `pip install easydot` is enough for notebooks.
+Graphviz is the best way to lay out DOT graphs, but the right runtime depends
+on where your code is running. Native `dot` is great when it is installed;
+browser rendering is better in notebooks and sandboxed frontends; server-side
+WASM is useful when you want static SVGs without system binaries.
 
-- **Pip-installable.** No `brew`, no `conda`, no `apt-get`, no Dockerfile changes.
-- **Multiple rendering modes.** Browser-side JS/WASM (`easydot.display`) works in sandboxed kernels; server-side WASM (`easydot.display_svg`) produces portable static SVGs; native Graphviz is available when system binaries are installed.
+`easydot` gives all three paths a small Python API.
+
+- **One entry point.** `easydot.render(...)` returns a rich notebook display object; `easydot.to_string(...)` returns raw HTML or SVG.
+- **Three backends.** `browser` uses JS/WASM in the frontend, `wasm` uses `wasi-graphviz` in Python, and `native` shells to installed Graphviz executables.
+- **Pip-installable default.** The browser backend has no Python dependencies and does not require `brew`, `conda`, `apt-get`, or Dockerfile changes.
 - **Tiny notebook outputs.** The WASM bundle is vendored and served once over loopback instead of inlined into every cell.
-- **Works offline.** Assets ship in the package, with a local fallback when the CDN isn't reachable.
-- **Small API.** `easydot.display(...)` renders via `_repr_html_` in notebooks; `easydot.display_svg(...)` renders via `_repr_svg_`.
+- **Offline-capable.** Browser assets ship in the package; server-side backends do not need browser network access.
 
 ## 🔤 Why DOT
 
@@ -51,29 +56,55 @@ DOT is a small text format for graph diagrams. Many Python libraries and build t
 
 ### Quick start
 
-Supported backends: `browser` (interactive, default), `wasm` (static SVG
-without native binaries), and `native` (static SVG via installed Graphviz
-executables).
+`render()` is the main interface. It returns a `Graph` object that displays
+in Jupyter, marimo, and other rich-output environments. Use `backend="auto"`
+(the default) to select the first working backend, or pick one explicitly.
 
 ```python
 import easydot
 
-# Interactive browser rendering (default)
+# Auto-select the best available backend (native → wasm → browser)
 easydot.render("digraph { A -> B -> C }")
 
-# Static SVG for saved notebooks / GitHub
-easydot.render("digraph { A -> B -> C }", backend="wasm")
+# Explicit backends
+easydot.render("digraph { A -> B -> C }", backend="browser")   # browser JS/WASM
+easydot.render("digraph { A -> B -> C }", backend="wasm")      # server-side WASM
+easydot.render("digraph { A -> B -> C }", backend="native")    # native Graphviz
 
-# Static SVG using native Graphviz, when available on PATH
-easydot.render("digraph { A -> B -> C }", backend="native")
+# Fit and scale work on all backends
+easydot.render("digraph { A -> B -> C }", fit="horizontal")
+easydot.render("digraph { A -> B -> C }", fit="both", scale=1.5)
 
-# Raw strings
-easydot.to_string("digraph { A -> B -> C }")                       # HTML
-easydot.to_string("digraph { A -> B -> C }", backend="wasm")      # SVG
-easydot.to_string("digraph { A -> B -> C }", backend="native")    # SVG
+# Raw output
+easydot.svg("digraph { A -> B -> C }")                       # SVG string (wasm/native)
+easydot.html("digraph { A -> B -> C }", fit="horizontal")    # display-ready HTML
+easydot.native("digraph { A -> B -> C }", format="png")      # PNG bytes
 ```
 
-### Server-side WASM rendering
+### Backend guide
+
+| Backend   | Runtime             | Fit/scale | Best for                                      |
+| --------- | ------------------- | --------- | --------------------------------------------- |
+| `browser` | frontend JS/WASM    | ✓         | notebooks, marimo, JupyterLite, Pyodide       |
+| `wasm`    | Python WASI runtime | ✓         | saved notebooks, GitHub, CI without Graphviz  |
+| `native`  | Graphviz executable | ✓         | local/conda/server environments with Graphviz |
+
+Check what works in the current runtime:
+
+```python
+caps = easydot.capabilities()
+caps["browser"].available   # True if local or CDN browser assets are reachable
+caps["wasm"].available      # True if wasi-graphviz can render a probe graph
+caps["native"].available    # True if native dot can render a probe graph
+```
+
+`backend="auto"` uses these probes and chooses `native`, then `wasm`, then
+`browser` with local assets, then `browser` with CDN assets.
+Probe results are cached in-process; pass `refresh_capabilities=True` to
+`render(..., backend="auto")` or `refresh=True` to `capabilities()` if the
+runtime changes after startup.
+
+### Server-side WASM
 
 For static SVG output that works in saved notebooks and GitHub without a live browser runtime:
 
@@ -85,13 +116,16 @@ pip install easydot[wasm]
 import easydot
 
 # Raw SVG string
-svg = easydot.svg("digraph { A -> B -> C }")
+svg = easydot.svg("digraph { A -> B -> C }", backend="wasm")
 
-# Rich display object for notebooks
-easydot.display_svg("digraph { A -> B -> C }")
+# Rich display object for notebooks — fit and scale work the same as browser
+easydot.render("digraph { A -> B -> C }", backend="wasm", fit="horizontal")
+
+# Display-ready HTML with fit/scale
+html = easydot.html("digraph { A -> B -> C }", backend="wasm", fit="both")
 ```
 
-### Native Graphviz rendering
+### Native Graphviz
 
 If Graphviz executables are installed and available on `PATH`, `easydot` can
 render through the native toolchain:
@@ -99,8 +133,12 @@ render through the native toolchain:
 ```python
 import easydot
 
-svg = easydot.native_svg("digraph { A -> B -> C }")
-easydot.display_native_svg("digraph { A -> B -> C }")
+svg = easydot.svg("digraph { A -> B -> C }", backend="native")
+easydot.render("digraph { A -> B -> C }", backend="native", fit="horizontal")
+
+# Non-SVG formats: native() returns bytes for binary formats
+png_bytes = easydot.native("digraph { A -> B -> C }", format="png")
+pdf_bytes = easydot.native("digraph { A -> B -> C }", format="pdf")
 ```
 
 The native backend shells to the selected Graphviz engine, such as `dot` or
@@ -118,7 +156,7 @@ import easydot, pydot
 graph = pydot.Dot("example", graph_type="digraph")
 graph.add_edge(pydot.Edge("A", "B"))
 
-easydot.display(graph)
+easydot.render(graph)
 ```
 
 ### NetworkX
@@ -128,14 +166,27 @@ import easydot, networkx as nx
 from networkx.drawing.nx_pydot import to_pydot
 
 G = nx.DiGraph([("A", "B"), ("B", "C"), ("A", "C")])
-easydot.display(to_pydot(G))
+easydot.render(to_pydot(G))
 ```
 
 ### CLI
 
 ```bash
-echo 'digraph { A -> B }' | easydot     # render DOT to HTML on stdout
-easydot --urls                          # print local asset server URLs
+# HTML output (default) — fit and scale work on all backends
+echo 'digraph { A -> B }' | easydot                              # browser backend HTML
+echo 'digraph { A -> B }' | easydot --backend auto              # best available backend
+echo 'digraph { A -> B }' | easydot --backend wasm --fit horizontal   # WASM with fit
+echo 'digraph { A -> B }' | easydot --backend native --scale 1.5      # native with scale
+
+# Raw SVG (wasm or native only)
+echo 'digraph { A -> B }' | easydot --format svg --backend wasm
+echo 'digraph { A -> B }' | easydot --format svg --backend native
+
+# Binary formats (native only)
+echo 'digraph { A -> B }' | easydot --format png --backend native > graph.png
+echo 'digraph { A -> B }' | easydot --format pdf --backend native > graph.pdf
+
+easydot --urls                                                    # print asset server URLs
 ```
 
 ## 🔀 Source Modes
@@ -149,7 +200,7 @@ By default, `easydot` tries a pinned CDN URL first and falls back to the local s
 | `cdn`   |  no   | yes | Remote hosts where `127.0.0.1` isn't browser-reachable |
 
 ```python
-easydot.display("digraph { A -> B }", source="cdn")
+easydot.render("digraph { A -> B }", source="cdn")
 ```
 
 <details>
@@ -174,10 +225,10 @@ PyCharm notebooks are detected automatically and use a `data:` iframe because
 their output recycling can detach and reattach `srcdoc` iframes while scrolling.
 You can force that wrapper explicitly with `EASYDOT_IFRAME_MODE="data"`.
 
-The same modes are available per display call:
+The same modes are available per render call:
 
 ```python
-easydot.display("digraph { A -> B }", iframe_mode="data")
+easydot.render("digraph { A -> B }", iframe_mode="data")
 ```
 
 </details>
@@ -203,9 +254,9 @@ in-progress indicator while the graph is rendering. You can opt into Web Worker
 rendering for large graphs.
 
 ```python
-easydot.display(dot, worker=False)   # default: render on the output iframe's main thread
-easydot.display(dot, worker="auto")  # try a worker, visibly fall back if unavailable
-easydot.display(dot, worker=True)    # require a worker; no main-thread fallback
+easydot.render(dot, worker=False)   # default: render on the output iframe's main thread
+easydot.render(dot, worker="auto")  # try a worker, visibly fall back if unavailable
+easydot.render(dot, worker=True)    # require a worker; no main-thread fallback
 ```
 
 If worker rendering is unavailable and `worker="auto"` is used, `easydot` shows
@@ -228,7 +279,8 @@ const graphviz = await mod.Graphviz.load();
 const svg = graphviz.layout("digraph { A -> B }", "svg", "dot");
 ```
 
-> Need server-side rendering to files? Use `easydot.svg(...)` or native Graphviz.
+> Need server-side rendering to files? Use `easydot.to_string(..., backend="wasm")`
+> or `easydot.to_string(..., backend="native")`.
 
 <details>
 <summary><b>Runtime model</b></summary>

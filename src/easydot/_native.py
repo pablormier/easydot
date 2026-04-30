@@ -6,9 +6,11 @@ import subprocess
 
 from easydot._html import DotSource, _dot_text
 
+_TEXT_FORMATS = frozenset({"svg", "dot", "plain", "json", "xdot", "xdot1.2", "xdot1.4", "ps", "eps"})
 
-def native(dot: str | DotSource, *, engine: str = "dot", format: str = "svg") -> str:
-    """Render a DOT graph to a string using a native Graphviz executable.
+
+def native(dot: str | DotSource, *, engine: str = "dot", format: str = "svg") -> str | bytes:
+    """Render a DOT graph using a native Graphviz executable.
 
     Parameters
     ----------
@@ -17,20 +19,19 @@ def native(dot: str | DotSource, *, engine: str = "dot", format: str = "svg") ->
     engine:
         Graphviz layout engine executable (e.g. ``dot``, ``neato``, ``circo``).
     format:
-        Graphviz output format (e.g. ``svg``, ``png``, ``pdf``). Text formats
-        are decoded as UTF-8.
+        Graphviz output format (e.g. ``svg``, ``png``, ``pdf``).
+        Text formats are returned as ``str``; binary formats as ``bytes``.
 
     Returns
     -------
-    str
-        The rendered output decoded as UTF-8.
+    str or bytes
+        The rendered output. ``str`` for text formats, ``bytes`` for binary
+        formats (e.g. ``png``, ``pdf``).
 
     Raises
     ------
     RuntimeError
         If the native Graphviz executable is unavailable or rendering fails.
-    UnicodeDecodeError
-        If ``format`` is binary and the output cannot be decoded as UTF-8.
     """
     dot_text = _dot_text(dot)
     try:
@@ -52,41 +53,13 @@ def native(dot: str | DotSource, *, engine: str = "dot", format: str = "svg") ->
         detail = f": {stderr}" if stderr else ""
         raise RuntimeError(f"Native Graphviz {engine!r} failed{detail}")
 
-    return result.stdout.decode("utf-8")
+    if format in _TEXT_FORMATS:
+        return result.stdout.decode("utf-8")
+    return result.stdout
 
 
 def native_svg(dot: str | DotSource, *, engine: str = "dot") -> str:
     """Render a DOT graph to an SVG string using native Graphviz."""
-    return native(dot, engine=engine, format="svg")
-
-
-class NativeSvgDisplay:
-    """Rich display wrapper for a static SVG rendered by native Graphviz."""
-
-    def __init__(self, dot: str | DotSource, *, engine: str = "dot") -> None:
-        self.dot = _dot_text(dot)
-        self.engine = engine
-        self._svg: str | None = None
-
-    def _render(self) -> str:
-        if self._svg is None:
-            self._svg = native_svg(self.dot, engine=self.engine)
-        return self._svg
-
-    def __repr__(self) -> str:
-        return self.dot
-
-    def _repr_svg_(self) -> str:
-        return self._render()
-
-    def _repr_mimebundle_(self, include=None, exclude=None) -> dict[str, str]:
-        """Return a Jupyter MIME bundle with ``image/svg+xml``."""
-        return {
-            "image/svg+xml": self._render(),
-            "text/plain": self.dot,
-        }
-
-
-def display_native_svg(dot: str | DotSource, *, engine: str = "dot") -> NativeSvgDisplay:
-    """Return a rich display object for a DOT graph rendered by native Graphviz."""
-    return NativeSvgDisplay(dot, engine=engine)
+    result = native(dot, engine=engine, format="svg")
+    assert isinstance(result, str)
+    return result
