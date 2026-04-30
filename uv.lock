@@ -187,11 +187,8 @@ wheels = [
 
 [[package]]
 name = "easydot"
-version = "0.2.0"
+version = "0.2.1"
 source = { editable = "." }
-dependencies = [
-    { name = "marimo" },
-]
 
 [package.optional-dependencies]
 pydot = [
@@ -214,7 +211,6 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "marimo", specifier = ">=0.23.4" },
     { name = "pydot", marker = "extra == 'pydot'", specifier = ">=4,<5" },
     { name = "wasi-graphviz", marker = "extra == 'wasm'", specifier = ">=0.1.0a2" },
     { name = "wasmtime", marker = "extra == 'wasm'", specifier = ">=22" },

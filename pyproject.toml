@@ -1,14 +1,12 @@
 [project]
 name = "easydot"
-version = "0.2.0"
+version = "0.2.1"
 description = "Tiny browser-side Graphviz DOT rendering helpers for notebooks and web views"
 authors = [
     { name = "Pablo Rodriguez Mier", email = "pablo.rodriguez.mier@gmail.com" }
 ]
 requires-python = ">=3.11"
-dependencies = [
-    "marimo>=0.23.4",
-]
+dependencies = []
 readme = "README.md"
 license = "BSD-3-Clause"
 license-files = [
