@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.23.1"
+__generated_with = "0.23.4"
 app = marimo.App(width="full")
 
 
@@ -244,9 +244,9 @@ def _(easydot, mo, source_dot):
             mo.md("## 3. Source loading"),
             mo.hstack(
                 [
-                    mo.vstack([mo.md("**`source='auto'`**"), easydot.render(source_dot, source="auto", fit=True)]),
-                    mo.vstack([mo.md("**`source='local'`**"), easydot.render(source_dot, source="local", fit=True)]),
-                    mo.vstack([mo.md("**`source='cdn'`**"), easydot.render(source_dot, source="cdn", fit=True)]),
+                    mo.vstack([mo.md("**`source='auto'`**"), easydot.render(source_dot, backend="browser", source="auto", fit=True)]),
+                    mo.vstack([mo.md("**`source='local'`**"), easydot.render(source_dot, backend="browser", source="local", fit=True)]),
+                    mo.vstack([mo.md("**`source='cdn'`**"), easydot.render(source_dot, backend="browser", source="cdn", fit=True)]),
                 ],
                 wrap=True,
             ),
@@ -442,9 +442,9 @@ def _(easydot, mo, source_dot):
             mo.md("## 8. Worker rendering"),
             mo.hstack(
                 [
-                    mo.vstack([mo.md("**default (`worker=False`)**"), easydot.render(source_dot, fit=True)]),
-                    mo.vstack([mo.md("**`worker='auto'`**"), easydot.render(source_dot, worker="auto", fit=True)]),
-                    mo.vstack([mo.md("**`worker=True`**"), easydot.render(source_dot, worker=True, fit=True)]),
+                    mo.vstack([mo.md("**default (`worker=False`)**"), easydot.render(source_dot, backend="browser", fit=True)]),
+                    mo.vstack([mo.md("**`worker='auto'`**"), easydot.render(source_dot, backend="browser", worker="auto", fit=True)]),
+                    mo.vstack([mo.md("**`worker=True`**"), easydot.render(source_dot, backend="browser", worker=True, fit=True)]),
                 ],
                 wrap=True,
             ),
@@ -490,7 +490,7 @@ def _(easydot, large_dot, mo):
         [
             mo.md("## 9. Large graph rendering"),
             mo.md("Random 1000-node graph rendered with `engine='sfdp'` and `worker=True`."),
-            easydot.render(large_dot, engine="sfdp", worker=True, fit="horizontal"),
+            easydot.render(large_dot, engine="sfdp", worker=True, fit="horizontal", backend="browser"),
         ]
     )
     return

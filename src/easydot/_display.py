@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import base64
 import html as html_lib
+import json
 import re
 import uuid
 
@@ -45,21 +46,31 @@ def _parse_length(value: str) -> float:
     return float(value)
 
 
-def extract_viewbox(svg: str) -> tuple[float, float]:
-    """Return (width, height) from the SVG viewBox attribute.
+def extract_natural_size(svg: str) -> tuple[float, float]:
+    """Return natural SVG dimensions in CSS pixels.
 
-    Falls back to width/height attributes with unit conversion if viewBox is absent.
-    Negative viewBox origins are handled by using the width/height components only.
+    Explicit width/height attributes are preferred because browser SVG layout
+    resolves those lengths before applying fit CSS. Falls back to viewBox width
+    and height when explicit dimensions are absent.
     """
+    m = _WH_RE.search(svg)
+    if m:
+        return _parse_length(m.group(1)), _parse_length(m.group(2))
     m = _VIEWBOX_RE.search(svg)
     if m:
         parts = m.group(1).split()
         if len(parts) == 4:
             return float(parts[2]), float(parts[3])
-    m = _WH_RE.search(svg)
-    if m:
-        return _parse_length(m.group(1)), _parse_length(m.group(2))
     return 100.0, 100.0
+
+
+def extract_viewbox(svg: str) -> tuple[float, float]:
+    """Return natural SVG dimensions.
+
+    Kept for internal compatibility; use :func:`extract_natural_size` for new
+    code.
+    """
+    return extract_natural_size(svg)
 
 
 _PROLOG_RE = re.compile(
@@ -153,6 +164,63 @@ def layout_stylesheet(attr_id: str) -> str:
     )
 
 
+def body_stylesheet(fit: str) -> str:
+    if fit in ("vertical", "both"):
+        return "html,body{margin:0;padding:0;height:100%;overflow:hidden}"
+    return "html,body{margin:0;padding:0}"
+
+
+def fit_lifecycle_script() -> str:
+    return r"""
+const setupEasydotFit = (target, fit, scale, observe = true) => {
+  const syncFrameHeight = () => {
+    const frame = window.frameElement;
+    if (!frame) return;
+    try {
+      frame.style.height = `${Math.ceil(target.scrollHeight)}px`;
+    } catch (_err) {
+      /* cross-origin frames reject the write; best-effort only */
+    }
+  };
+  const readCssNumber = (name) => {
+    const value = getComputedStyle(target).getPropertyValue(name).trim();
+    const number = Number(value);
+    return Number.isFinite(number) && number > 0 ? number : null;
+  };
+  const svgEl = target.querySelector(":scope > svg");
+  if (svgEl && (readCssNumber("--easydot-nat-w") === null || readCssNumber("--easydot-nat-h") === null)) {
+    const vb = svgEl.viewBox && svgEl.viewBox.baseVal;
+    const width = svgEl.width && svgEl.width.baseVal;
+    const height = svgEl.height && svgEl.height.baseVal;
+    const rect = svgEl.getBoundingClientRect();
+    const naturalW = (width && width.value) || (vb && vb.width) || rect.width || 1;
+    const naturalH = (height && height.value) || (vb && vb.height) || rect.height || 1;
+    target.style.setProperty("--easydot-nat-w", String(naturalW));
+    target.style.setProperty("--easydot-nat-h", String(naturalH));
+  }
+  target.style.setProperty("--easydot-scale", String(scale));
+  if (fit === "none" && scale !== 1) {
+    target.classList.add("easydot-scaled");
+  }
+
+  const isViewportFit = fit === "vertical" || fit === "both";
+  if (observe && !isViewportFit) {
+    const scheduleFrameHeightSync = () => requestAnimationFrame(syncFrameHeight);
+    scheduleFrameHeightSync();
+    if (typeof ResizeObserver !== "undefined") {
+      const observer = new ResizeObserver(scheduleFrameHeightSync);
+      observer.observe(target);
+      if (svgEl) {
+        observer.observe(svgEl);
+      }
+    }
+    window.addEventListener("resize", scheduleFrameHeightSync);
+  }
+  return { syncFrameHeight };
+};
+"""
+
+
 def toolbar_stylesheet(attr_id: str) -> str:
     return (
         f"#{attr_id} .easydot-toolbar{{"
@@ -233,14 +301,14 @@ def wrap_static_html(
 ) -> str:
     """Wrap a static SVG in the standard easydot display wrapper.
 
-    Sets --easydot-nat-w/--easydot-nat-h from the SVG viewBox at render time
-    (no JS required). Applies the same CSS fit classes as the browser backend.
+    Sets --easydot-nat-w/--easydot-nat-h from the SVG at render time and runs
+    the shared fit lifecycle used by the browser backend.
     """
     if container_id is None:
         container_id = f"easydot-{uuid.uuid4().hex}"
 
     attr_id = html_lib.escape(container_id, quote=True)
-    nat_w, nat_h = extract_viewbox(svg)
+    nat_w, nat_h = extract_natural_size(svg)
     inlined = inline_svg(svg)
 
     style_attr = (
@@ -253,11 +321,18 @@ def wrap_static_html(
     else:
         fit_class = f"easydot-fit-{fit}"
 
-    layout_style = layout_stylesheet(attr_id)
+    layout_style = body_stylesheet(fit) + layout_stylesheet(attr_id)
     toolbar_html = ""
     if toolbar:
         toolbar_html = static_toolbar_html(attr_id, svg)
         layout_style += toolbar_stylesheet(attr_id)
+
+    fit_script = (
+        "<script>"
+        f"{fit_lifecycle_script()}"
+        f"setupEasydotFit(document.getElementById({json.dumps(container_id)}), {json.dumps(fit)}, {json.dumps(float(scale))});"
+        "</script>"
+    )
 
     return (
         f'<style>{layout_style}</style>'
@@ -265,4 +340,5 @@ def wrap_static_html(
         f'{toolbar_html}'
         f'{inlined}'
         f'</div>'
+        f'{fit_script}'
     )

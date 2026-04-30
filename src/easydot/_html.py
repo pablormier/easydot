@@ -14,7 +14,13 @@ from typing import Protocol
 from easydot._icons import CHECK_ICON, COPY_ICON, DOWNLOAD_ICON, STOP_ICON
 from easydot._version import UPSTREAM_PACKAGE, UPSTREAM_VERSION
 from easydot._server import asset_urls
-from easydot._display import layout_stylesheet, toolbar_stylesheet, normalize_fit
+from easydot._display import (
+    body_stylesheet,
+    fit_lifecycle_script,
+    layout_stylesheet,
+    normalize_fit,
+    toolbar_stylesheet,
+)
 
 
 class DotSource(Protocol):
@@ -182,10 +188,7 @@ def html(
     js_show_spinner = _js_literal(bool(spinner))
     js_worker_mode = _js_literal(worker_mode)
 
-    if fit_mode in ("vertical", "both"):
-        body_style = "html,body{margin:0;padding:0;height:100%;overflow:hidden}"
-    else:
-        body_style = "html,body{margin:0;padding:0}"
+    body_style = body_stylesheet(fit_mode)
     layout_style = layout_stylesheet(attr_id)
 
     toolbar_markup = ""
@@ -269,6 +272,7 @@ def html(
             "WORKER_MODE": js_worker_mode,
             "TOOLBAR_SETUP_JS": toolbar_setup_js,
             "STOP_ICON": _js_literal(STOP_ICON),
+            "FIT_LIFECYCLE_JS": fit_lifecycle_script(),
         }
     )
 

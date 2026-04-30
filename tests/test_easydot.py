@@ -261,7 +261,9 @@ def test_html_fit_horizontal_uses_css_responsiveness():
         "max-width:calc(var(--easydot-nat-w) * var(--easydot-scale) * 1px)"
         in rendered
     )
-    assert "new ResizeObserver(syncFrameHeight).observe(svgEl)" in rendered
+    assert "const setupEasydotFit = (target, fit, scale, observe = true)" in rendered
+    assert "observer.observe(svgEl)" in rendered
+    assert 'setupEasydotFit(target, fit, scale)' in rendered
 
 
 def test_html_fit_vertical_uses_flex_viewport():
@@ -281,7 +283,8 @@ def test_html_fit_vertical_uses_flex_viewport():
 def test_html_viewport_fits_skip_frame_height_sync():
     for fit in ("vertical", "both"):
         rendered = easydot.html("digraph { A -> B }", backend="browser", source="cdn", fit=fit)
-        assert "if (!isViewportFit)" in rendered
+        assert "if (observe && !isViewportFit)" in rendered
+        assert 'setupEasydotFit(target, "none", 1, false)' in rendered
         assert "syncFrameHeight" in rendered
 
 
@@ -1242,8 +1245,8 @@ def test_html_native_matches_wasm_wrapper_structure(monkeypatch):
     result = easydot.html("digraph { A -> B }", backend="native", fit="horizontal")
 
     assert "easydot-fit-horizontal" in result
-    assert "--easydot-nat-w:134" in result
-    assert "--easydot-nat-h:116" in result
+    assert "--easydot-nat-w:178.6667" in result
+    assert "--easydot-nat-h:154.6667" in result
 
 
 def test_html_static_backend_rejects_browser_source():
@@ -1266,12 +1269,12 @@ def test_extract_viewbox_handles_negative_origin():
     assert h == 124.0
 
 
-def test_extract_viewbox_uses_viewbox_not_pt_dimensions():
+def test_extract_viewbox_uses_css_pixel_dimensions():
     from easydot._display import extract_viewbox
     svg = '<svg width="134pt" height="116pt" viewBox="0 0 134 116"></svg>'
     w, h = extract_viewbox(svg)
-    assert w == 134.0
-    assert h == 116.0
+    assert w == pytest.approx(178.6667)
+    assert h == pytest.approx(154.6667)
 
 
 def test_inline_svg_strips_xml_prolog_and_doctype():
@@ -1400,4 +1403,3 @@ def test_cli_format_png_returns_bytes_to_stdout(monkeypatch, capsys):
     
     assert main() == 0
     assert written_bytes == b"fake_png_data"
-

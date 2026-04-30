@@ -8,15 +8,9 @@
     const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
     return new TextDecoder("utf-8").decode(bytes);
   };
-  const syncFrameHeight = () => {
-    const frame = window.frameElement;
-    if (!frame) return;
-    try {
-      frame.style.height = `${Math.ceil(target.scrollHeight)}px`;
-    } catch (_err) {
-      /* cross-origin frames reject the write; best-effort only */
-    }
-  };
+  __EASYDOT_FIT_LIFECYCLE_JS__
+  const initialFitControls = setupEasydotFit(target, "none", 1, false);
+  const syncFrameHeight = initialFitControls.syncFrameHeight;
   const nextFrame = () => new Promise((resolve) => requestAnimationFrame(resolve));
   const showSpinner = __EASYDOT_SHOW_SPINNER__;
   const workerMode = __EASYDOT_WORKER_MODE__;
@@ -220,30 +214,8 @@
 
     const fit = __EASYDOT_FIT__;
     const scale = __EASYDOT_SCALE__;
-    const svgEl = target.querySelector(":scope > svg");
-    if (svgEl) {
-      const vb = svgEl.viewBox && svgEl.viewBox.baseVal;
-      const width = svgEl.width && svgEl.width.baseVal;
-      const height = svgEl.height && svgEl.height.baseVal;
-      const rect = svgEl.getBoundingClientRect();
-      const naturalW = (width && width.value) || (vb && vb.width) || rect.width || 1;
-      const naturalH = (height && height.value) || (vb && vb.height) || rect.height || 1;
-      target.style.setProperty("--easydot-nat-w", String(naturalW));
-      target.style.setProperty("--easydot-nat-h", String(naturalH));
-      target.style.setProperty("--easydot-scale", String(scale));
-      if (fit === "none" && scale !== 1) {
-        target.classList.add("easydot-scaled");
-      }
-    }
+    setupEasydotFit(target, fit, scale);
     __EASYDOT_TOOLBAR_SETUP_JS__
-
-    const isViewportFit = fit === "vertical" || fit === "both";
-    if (!isViewportFit) {
-      syncFrameHeight();
-      if (svgEl && typeof ResizeObserver !== "undefined") {
-        new ResizeObserver(syncFrameHeight).observe(svgEl);
-      }
-    }
   } catch (error) {
     if (error && error.name === "AbortError") {
       showCancelled();
