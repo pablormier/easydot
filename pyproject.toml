@@ -30,8 +30,8 @@ pydot = [
     "pydot>=4,<5",
 ]
 wasm = [
-    "wasi-graphviz>=0.1.0a2",
-    "wasmtime>=22",
+    "wasi-graphviz>=0.1.0",
+    "wasmtime>=44",
 ]
 
 [project.urls]
