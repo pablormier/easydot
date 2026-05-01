@@ -14,6 +14,26 @@ _PROBE_DOT = "digraph { easydot_probe -> ok }"
 _CACHE: dict[tuple[str, float, bool], dict[str, "BackendCapability"]] = {}
 
 
+def _is_hosted_environment() -> bool:
+    """Return True if running in a known hosted remote environment."""
+    import os
+    import sys
+
+    if "google.colab" in sys.modules:
+        return True
+    if "KAGGLE_KERNEL_RUN_TYPE" in os.environ:
+        return True
+    if "SAGEMAKER_INTERNAL_IMAGE_URI" in os.environ:
+        return True
+    if "BINDER_PORT" in os.environ:
+        return True
+    if "JUPYTERHUB_API_TOKEN" in os.environ:
+        return True
+    if "CODESPACES" in os.environ or "GITPOD_WORKSPACE_ID" in os.environ:
+        return True
+    return False
+
+
 @dataclass(frozen=True)
 class BackendCapability:
     """Runtime availability for one easydot backend."""
@@ -44,12 +64,16 @@ def _probe_url(url: str, *, timeout: float) -> tuple[bool, str | None]:
 
 def _browser_capability(*, timeout: float, check_cdn: bool) -> BackendCapability:
     local_url: str | None = None
-    try:
-        local_url = asset_urls()["js"]
-        local_available, local_reason = _probe_url(local_url, timeout=timeout)
-    except Exception as exc:
+    if _is_hosted_environment():
         local_available = False
-        local_reason = _failure_reason(exc)
+        local_reason = "local server unreachable from client browser in hosted environment"
+    else:
+        try:
+            local_url = asset_urls()["js"]
+            local_available, local_reason = _probe_url(local_url, timeout=timeout)
+        except Exception as exc:
+            local_available = False
+            local_reason = _failure_reason(exc)
 
     if check_cdn:
         cdn_available, cdn_reason = _probe_url(DEFAULT_CDN_URL, timeout=timeout)

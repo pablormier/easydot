@@ -99,7 +99,7 @@ caps["native"].available    # True if native dot can render a probe graph
 ```
 
 `backend="auto"` uses these probes and chooses `native`, then `wasm`, then
-`browser` with local assets, then `browser` with CDN assets.
+`browser` with CDN assets, then `browser` with local assets.
 Probe results are cached in-process; pass `refresh_capabilities=True` to
 `render(..., backend="auto")` or `refresh=True` to `capabilities()` if the
 runtime changes after startup.
@@ -192,6 +192,8 @@ easydot --urls                                                    # print asset 
 ## 🔀 Source Modes
 
 By default, `easydot` tries a pinned CDN URL first and falls back to the local server.
+Known hosted notebook environments skip the local server probe, because a
+Python-side `127.0.0.1` server is not browser-reachable there.
 
 | Mode    | Local | CDN | Best for                                               |
 | ------- | :---: | :-: | ------------------------------------------------------ |

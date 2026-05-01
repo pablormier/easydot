@@ -862,7 +862,7 @@ def test_render_auto_falls_back_to_wasm(monkeypatch):
     assert obj._resolve_backend() == "wasm"
 
 
-def test_render_auto_prefers_browser_local_before_cdn(monkeypatch):
+def test_render_auto_prefers_browser_cdn_before_local(monkeypatch):
     monkeypatch.setattr(
         easydot,
         "capabilities",
@@ -875,7 +875,7 @@ def test_render_auto_prefers_browser_local_before_cdn(monkeypatch):
 
     obj = easydot.render("digraph { A -> B }", backend="auto")
     assert obj._resolve_backend() == "browser"
-    assert obj.source == "local"
+    assert obj.source == "cdn"
 
 
 def test_render_auto_uses_browser_cdn_when_local_unavailable(monkeypatch):
@@ -1169,6 +1169,24 @@ def test_browser_capability_can_skip_cdn_check(monkeypatch):
     assert capability.details["local"] is True
     assert capability.details["cdn"] is False
     assert capability.details["cdn_reason"] == "not checked"
+
+
+def test_browser_capability_skips_local_probe_in_hosted_environment(monkeypatch):
+    monkeypatch.setenv("CODESPACES", "true")
+    monkeypatch.setattr(
+        _capabilities,
+        "asset_urls",
+        lambda: pytest.fail("hosted environments should not start the local asset server"),
+    )
+    monkeypatch.setattr(_capabilities, "_probe_url", lambda url, *, timeout: (True, None))
+
+    capability = _capabilities._browser_capability(timeout=0.25, check_cdn=True)
+
+    assert capability.available is True
+    assert capability.details["local"] is False
+    assert capability.details["cdn"] is True
+    assert capability.details["local_url"] is None
+    assert "hosted environment" in capability.details["local_reason"]
 
 
 def test_wasm_capability_renders_probe_instead_of_only_checking_import(monkeypatch):

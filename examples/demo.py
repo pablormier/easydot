@@ -527,21 +527,23 @@ def _(easydot, mo, source_dot):
                     easydot.render(source_dot, backend=_backend, fit="horizontal"),
                 ])
             )
-    return mo.vstack([
+    mo.vstack([
         mo.md("## 11. Fit works on all backends"),
         mo.md("`fit='horizontal'` applied to each available backend — same CSS classes, same layout."),
         mo.hstack(cells, wrap=True),
     ])
+    return
 
 
 @app.cell
 def _(easydot, mo, source_dot):
-    return mo.vstack([
+    mo.vstack([
         mo.md("## 12. Raw SVG from wasm/native"),
         mo.md("`easydot.svg()` returns a plain SVG string synchronously. "
               "Only wasm and native backends are supported."),
         mo.code(easydot.svg(source_dot, backend="auto")[:500] + "..."),
     ])
+    return
 
 
 if __name__ == "__main__":

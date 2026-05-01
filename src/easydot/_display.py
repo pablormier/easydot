@@ -250,7 +250,7 @@ def toolbar_stylesheet(attr_id: str) -> str:
 def static_toolbar_html(attr_id: str, svg_text: str) -> str:
     """Toolbar markup with copy/download buttons for static (non-browser) backends."""
     svg_b64 = base64.b64encode(svg_text.encode("utf-8")).decode("ascii")
-    check_icon_json = repr(CHECK_ICON).replace("'", '"')
+    check_icon_json = json.dumps(CHECK_ICON).replace("</", "<\\/")
     return (
         f'<div class="easydot-toolbar" data-easydot-toolbar data-svg="{svg_b64}">'
         f'<button type="button" data-easydot-copy aria-label="Copy SVG to clipboard" title="Copy SVG">{COPY_ICON}</button>'

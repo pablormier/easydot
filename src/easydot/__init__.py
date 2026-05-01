@@ -75,11 +75,11 @@ def _select_auto_backend(kwargs: dict[str, object]) -> str:
         if details.get("cdn") is True:
             return "browser"
     elif source == "auto":
-        if details.get("local") is True:
-            kwargs["source"] = "local"
-            return "browser"
         if details.get("cdn") is True:
             kwargs["source"] = "cdn"
+            return "browser"
+        if details.get("local") is True:
+            kwargs["source"] = "local"
             return "browser"
     else:
         raise ValueError(f"source must be 'auto', 'local', or 'cdn'; got {source!r}")
