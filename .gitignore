@@ -30,6 +30,7 @@ venv/
 env/
 ENV/
 .uv-cache/
+uv.lock
 
 # Local environment files
 .env

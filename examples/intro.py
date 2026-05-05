@@ -404,6 +404,200 @@ def _(dot, mo, state_machine_dot):
 
 
 @app.cell
+def _(mo):
+    active_step = mo.ui.slider(
+        start=1,
+        stop=4,
+        step=1,
+        value=1,
+        label="Pipeline step",
+        show_value=True,
+        full_width=True,
+    )
+    return (active_step,)
+
+
+@app.cell
+def _(active_step, dot, mo):
+    steps = [
+        ("ingest", "Ingest"),
+        ("validate", "Validate"),
+        ("enrich", "Enrich"),
+        ("publish", "Publish"),
+    ]
+    active_index = int(active_step.value) - 1
+
+    def fill(index: int) -> str:
+        if index < active_index:
+            return "#dcfce7"
+        if index == active_index:
+            return "#fef3c7"
+        return "#f8fafc"
+
+    nodes = "\n".join(
+        f'      {node} [label="{label}", fillcolor="{fill(index)}"];'
+        for index, (node, label) in enumerate(steps)
+    )
+    edges = " -> ".join(node for node, _label in steps)
+    active_label = steps[active_index][1]
+    interactive_dot = f"""
+    digraph {{
+      graph [
+        rankdir=LR,
+        bgcolor="transparent",
+        pad=0.22,
+        nodesep=0.50,
+        ranksep=0.90
+      ];
+      node [
+        shape=box,
+        style="rounded,filled",
+        fontname="Helvetica",
+        fontsize=12,
+        margin="0.16,0.10",
+        color="#334155",
+        penwidth=1.4
+      ];
+      edge [fontname="Helvetica", color="#64748b", arrowsize=0.75];
+
+    {nodes}
+      {edges};
+    }}
+    """
+
+    mo.vstack(
+        [
+            mo.md(
+                f"""
+                ## 6. Marimo makes DOT reactive
+
+                Marimo UI elements expose a `.value`. When that value changes,
+                cells that reference it rerun, so the DOT source can be
+                regenerated and `easydot` can render the new graph. Current
+                step: **{active_label}**.
+                """
+            ),
+            active_step,
+            dot(interactive_dot),
+        ]
+    )
+    return
+
+
+@app.cell
+def _():
+    animated_dot = """
+    digraph {
+      graph [
+        rankdir=LR,
+        bgcolor="transparent",
+        pad=0.25,
+        nodesep=0.58,
+        ranksep=0.90
+      ];
+      node [
+        shape=box,
+        style="rounded,filled",
+        fontname="Helvetica",
+        fontsize=12,
+        margin="0.16,0.10",
+        color="#334155",
+        penwidth=1.4,
+        fillcolor="#f8fafc"
+      ];
+      edge [
+        fontname="Helvetica",
+        fontsize=10,
+        color="#64748b",
+        penwidth=1.8,
+        arrowsize=0.75
+      ];
+
+      source [id="pulse_source", label="DOT", fillcolor="#dbeafe"];
+      render [id="pulse_render", label="Graphviz", fillcolor="#dcfce7"];
+      svg [id="pulse_svg", label="SVG", fillcolor="#fef3c7"];
+      notebook [id="pulse_notebook", label="marimo", fillcolor="#fae8ff"];
+
+      source -> render [id="flow_1", label="layout"];
+      render -> svg [id="flow_2", label="draw"];
+      svg -> notebook [id="flow_3", label="display"];
+    }
+    """
+    return (animated_dot,)
+
+
+@app.cell
+def _(animated_dot, dot, easydot, mo):
+    def animate_svg(svg: str) -> str:
+        svg = svg[svg.find("<svg") :]
+        styles = """
+        <style>
+          .edge path {
+            stroke-dasharray: 9 7;
+            animation: easydot-flow 900ms linear infinite;
+          }
+          #pulse_source polygon,
+          #pulse_render polygon,
+          #pulse_svg polygon,
+          #pulse_notebook polygon {
+            transform-box: fill-box;
+            transform-origin: center;
+            animation: easydot-pulse 1800ms ease-in-out infinite;
+          }
+          #pulse_render polygon { animation-delay: 200ms; }
+          #pulse_svg polygon { animation-delay: 400ms; }
+          #pulse_notebook polygon { animation-delay: 600ms; }
+          @keyframes easydot-flow {
+            to { stroke-dashoffset: -32; }
+          }
+          @keyframes easydot-pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.06); }
+          }
+        </style>
+        """
+        return svg.replace(">", f">{styles}", 1)
+
+    try:
+        animated_svg = animate_svg(easydot.svg(animated_dot, backend="wasm"))
+        output = mo.Html(animated_svg)
+    except RuntimeError:
+        output = mo.vstack(
+            [
+                dot(animated_dot),
+                mo.md(
+                    """
+                    This environment is using browser rendering only, so the
+                    notebook shows the regular easydot diagram here. The CSS
+                    animation version needs a synchronous SVG backend:
+
+                    ```bash
+                    uv run --with wasi-graphviz --with wasmtime marimo edit examples/intro.py
+                    ```
+                    """
+                ),
+            ]
+        )
+
+    mo.vstack(
+        [
+            mo.md(
+                """
+                ## 7. SVG output can be styled and animated
+
+                Browser rendering is great for notebooks, but when a
+                synchronous backend is available, `easydot.svg()` returns the
+                raw SVG string. Because Graphviz preserves SVG ids, we can add
+                CSS animations around the generated diagram.
+                """
+            ),
+            output,
+        ]
+    )
+    return
+
+
+@app.cell(hide_code=True)
 def _(easydot, mo):
     from textwrap import dedent
 
@@ -413,7 +607,7 @@ def _(easydot, mo):
         for name, capability in caps.items()
     )
     mo.md(dedent(f"""
-    ## 6. Notebook first, with other backends when available
+    ## 8. Notebook first, with other backends when available
 
     This notebook uses the browser backend so it can run in hosted marimo
     environments without installing Graphviz system binaries. The same API
@@ -437,7 +631,7 @@ def _(easydot, mo):
 @app.cell
 def _(mo):
     mo.md("""
-    ## 7. Try it
+    ## 9. Try it
 
     Change any DOT string above and rerun the cell. Good experiments:
 
