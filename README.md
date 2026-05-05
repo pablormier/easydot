@@ -7,6 +7,7 @@
 [![pip install easydot](https://img.shields.io/badge/pip%20install-easydot-blue?logo=pypi&logoColor=white)](https://pypi.org/project/easydot/)
 [![License: BSD-3-Clause](https://img.shields.io/badge/license-BSD--3--Clause-green)](LICENSE)
 [![marimo](https://marimo.io/shield.svg)](https://marimo.app/l/939bsu)
+[![Open in molab](https://molab.marimo.io/molab-shield.svg)](https://molab.marimo.io/notebooks/nb_mqYSyytiDeXt2eKhJyEkcE)
 
 </div>
 
