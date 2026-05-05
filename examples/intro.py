@@ -47,7 +47,7 @@ def _(mo):
     [DOT language](https://graphviz.org/doc/info/lang.html) directly in
     the browser. You write a small text description of a graph;
     [Graphviz](https://graphviz.org/) computes the layout; `easydot`
-    displays the result as a crisp SVG.
+    displays the result as a SVG.
 
     DOT is a good fit for public notebooks because it is plain text,
     readable in diffs, easy to generate from Python, and expressive enough
@@ -98,7 +98,9 @@ def _(dot, first_dot, mo):
                     ),
                     mo.vstack(
                         [
-                            mo.md("Graphviz chooses the geometry; easydot displays it."),
+                            mo.md(
+                                "Graphviz chooses the geometry; easydot displays it."
+                            ),
                             dot(first_dot),
                         ]
                     ),
@@ -316,9 +318,15 @@ def _(dot, mo, network_dot):
             ),
             mo.hstack(
                 [
-                    mo.vstack([mo.md("**neato**"), dot(network_dot, engine="neato", fit=True)]),
-                    mo.vstack([mo.md("**fdp**"), dot(network_dot, engine="fdp", fit=True)]),
-                    mo.vstack([mo.md("**circo**"), dot(network_dot, engine="circo", fit=True)]),
+                    mo.vstack(
+                        [mo.md("**neato**"), dot(network_dot, engine="neato", fit=True)]
+                    ),
+                    mo.vstack(
+                        [mo.md("**fdp**"), dot(network_dot, engine="fdp", fit=True)]
+                    ),
+                    mo.vstack(
+                        [mo.md("**circo**"), dot(network_dot, engine="circo", fit=True)]
+                    ),
                 ],
                 wrap=True,
                 gap=2,
@@ -558,26 +566,13 @@ def _(animated_dot, dot, easydot, mo):
         """
         return svg.replace(">", f">{styles}", 1)
 
-    try:
-        animated_svg = animate_svg(easydot.svg(animated_dot, backend="wasm"))
-        output = mo.Html(animated_svg)
-    except RuntimeError:
-        output = mo.vstack(
-            [
-                dot(animated_dot),
-                mo.md(
-                    """
-                    This environment is using browser rendering only, so the
-                    notebook shows the regular easydot diagram here. The CSS
-                    animation version needs a synchronous SVG backend:
-
-                    ```bash
-                    uv run --with wasi-graphviz --with wasmtime marimo edit examples/intro.py
-                    ```
-                    """
-                ),
-            ]
-        )
+    _caps = easydot.capabilities(check_cdn=False)
+    has_svg_backend = _caps["native"].available or _caps["wasm"].available
+    output = (
+        mo.Html(animate_svg(easydot.svg(animated_dot)))
+        if has_svg_backend
+        else dot(animated_dot)
+    )
 
     mo.vstack(
         [
@@ -606,7 +601,8 @@ def _(easydot, mo):
         f"- `{name}`: {'available' if capability.available else 'not available'}"
         for name, capability in caps.items()
     )
-    mo.md(dedent(f"""
+    mo.md(
+        dedent(f"""
     ## 8. Notebook first, with other backends when available
 
     This notebook uses the browser backend so it can run in hosted marimo
@@ -624,7 +620,8 @@ def _(easydot, mo):
     ```python
     easydot.render(dot_source, fit="horizontal")
     ```
-    """))
+    """)
+    )
     return
 
 
