@@ -41,8 +41,8 @@ jobs:
         uses: peter-evans/create-pull-request@v7
         with:
           branch: vendor/wasm-graphviz-${{ steps.check.outputs.latest }}
-          commit-message: "Update vendored @hpcc-js/wasm-graphviz to ${{ steps.check.outputs.latest }}"
-          title: "Update vendored @hpcc-js/wasm-graphviz to ${{ steps.check.outputs.latest }}"
+          commit-message: "deps: update vendored @hpcc-js/wasm-graphviz to ${{ steps.check.outputs.latest }}"
+          title: "deps: update vendored @hpcc-js/wasm-graphviz to ${{ steps.check.outputs.latest }}"
           body: |
             Automated update of the vendored Graphviz WASM module.
 
@@ -50,5 +50,6 @@ jobs:
             - **New version:** ${{ steps.check.outputs.latest }}
             - **Upstream:** [npm](https://www.npmjs.com/package/@hpcc-js/wasm-graphviz)
 
-            Please review the asset diff, run tests, and merge when ready.
+            CI will validate the asset diff before the PR is merged. Merging
+            this PR creates a patch release through Release Please.
           labels: dependencies
