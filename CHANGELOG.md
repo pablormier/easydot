@@ -2,6 +2,14 @@
 
 All notable changes to easydot are documented here.
 
+## [0.2.3](https://github.com/pablormier/easydot/compare/v0.2.2...v0.2.3) (2026-09-15)
+
+
+### Documentation
+
+* create an intro notebook for molab ([5c4e38b](https://github.com/pablormier/easydot/commit/5c4e38bb1300a7df372daed560eb77f3693aae66))
+* improve intro notebook ([229d91b](https://github.com/pablormier/easydot/commit/229d91b1215c3fcf7fb08bdeac31723b132301a1))
+
 ## [0.2.2] - 2026-05-01
 
 See the [release notes](release-notes/v0.2.2.md).
