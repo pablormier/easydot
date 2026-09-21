@@ -2,6 +2,13 @@
 
 All notable changes to easydot are documented here.
 
+## [0.3.0](https://github.com/pablormier/easydot/compare/v0.2.3...v0.3.0) (2026-09-21)
+
+
+### Features
+
+* add static plot mode ([f912670](https://github.com/pablormier/easydot/commit/f912670b9434081d88623554e408d1dc6d69f0f9))
+
 ## [0.2.3](https://github.com/pablormier/easydot/compare/v0.2.2...v0.2.3) (2026-09-15)
 
 
