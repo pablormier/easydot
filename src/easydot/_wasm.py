@@ -5,20 +5,27 @@ from __future__ import annotations
 from easydot._html import DotSource, _dot_text
 
 
-def svg(dot: str | DotSource, *, engine: str = "dot") -> str:
-    """Render a DOT graph to an SVG string using the wasi-graphviz WASM backend.
+def render(
+    dot: str | DotSource,
+    *,
+    format: str = "svg",
+    engine: str = "dot",
+) -> str | bytes:
+    """Render a DOT graph using the wasi-graphviz WASM backend.
 
     Parameters
     ----------
     dot:
         A DOT source string or an object with a ``to_string()`` method.
+    format:
+        Graphviz output format, such as ``"svg"`` or ``"png"``.
     engine:
         Graphviz layout engine (e.g. ``dot``, ``neato``, ``circo``).
 
     Returns
     -------
-    str
-        The rendered SVG.
+    str or bytes
+        Text output for SVG and bytes for binary formats.
 
     Raises
     ------
@@ -33,5 +40,14 @@ def svg(dot: str | DotSource, *, engine: str = "dot") -> str:
             "The wasm backend requires the 'wasi-graphviz' package. "
             "Install it with: uv pip install 'easydot[wasm]'"
         ) from exc
-    svg_bytes: bytes = wasi_graphviz.render(dot_text, format="svg", engine=engine)
-    return svg_bytes.decode("utf-8")
+    rendered: bytes = wasi_graphviz.render(dot_text, format=format, engine=engine)
+    if format == "svg":
+        return rendered.decode("utf-8")
+    return rendered
+
+
+def svg(dot: str | DotSource, *, engine: str = "dot") -> str:
+    """Render a DOT graph to an SVG string using the WASM backend."""
+    rendered = render(dot, format="svg", engine=engine)
+    assert isinstance(rendered, str)
+    return rendered

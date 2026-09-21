@@ -1338,6 +1338,191 @@ def test_native_binary_format_returns_bytes(monkeypatch):
     assert result == fake_png
 
 
+def test_plot_defaults_to_static_svg_from_wasm():
+    result = easydot.plot("digraph { A -> B }", backend="wasm")
+
+    assert isinstance(result, easydot.StaticImage)
+    assert result.backend == "wasm"
+    assert result.format == "svg"
+    assert result.mime_type == "image/svg+xml"
+    assert "image/svg+xml" in result._repr_mimebundle_()
+    assert result._repr_svg_().startswith("<?xml") or result._repr_svg_().startswith("<svg")
+
+
+def test_plot_formats_as_a_notebook_mime_output():
+    pytest.importorskip("IPython")
+    from IPython.core.interactiveshell import InteractiveShell
+
+    result = easydot.plot("digraph { A -> B }", backend="wasm")
+
+    data, _ = InteractiveShell.instance().display_formatter.format(result)
+
+    assert "image/svg+xml" in data
+    assert (
+        data["image/svg+xml"].startswith("<?xml")
+        or data["image/svg+xml"].startswith("<svg")
+    )
+
+
+def test_plot_can_render_png_from_wasm(monkeypatch):
+    fake_png = b"\x89PNG\r\n\x1a\n"
+    monkeypatch.setattr(
+        easydot._wasm_module,
+        "render",
+        lambda dot, *, format, engine: fake_png,
+    )
+
+    result = easydot.plot("digraph { A -> B }", format="png", backend="wasm")
+
+    assert result.format == "png"
+    assert result.mime_type == "image/png"
+    assert result.data.startswith(b"\x89PNG")
+    assert result._repr_mimebundle_() == {"image/png": result.data}
+
+
+def test_plot_auto_prefers_native(monkeypatch):
+    monkeypatch.setattr(
+        easydot,
+        "_select_static_backend",
+        lambda **kwargs: (
+            "native",
+            {
+                "wasm": easydot.BackendCapability("wasm", True),
+                "native": easydot.BackendCapability("native", True),
+            },
+        ),
+    )
+    monkeypatch.setattr(
+        easydot._native_module,
+        "native",
+        lambda dot, *, engine, format: "<svg />",
+    )
+
+    result = easydot.plot("digraph { A -> B }", backend="auto")
+
+    assert result.backend == "native"
+    assert result.data == "<svg />"
+
+
+def test_plot_auto_falls_back_to_wasm(monkeypatch):
+    monkeypatch.setattr(
+        easydot,
+        "_select_static_backend",
+        lambda **kwargs: (
+            "wasm",
+            {
+                "wasm": easydot.BackendCapability("wasm", True),
+                "native": easydot.BackendCapability("native", False, "missing"),
+            },
+        ),
+    )
+    monkeypatch.setattr(
+        easydot._wasm_module,
+        "render",
+        lambda dot, *, format, engine: "<svg />",
+    )
+
+    result = easydot.plot("digraph { A -> B }", backend="auto")
+
+    assert result.backend == "wasm"
+    assert result.data == "<svg />"
+
+
+def test_select_static_backend_probes_native_before_wasm(monkeypatch):
+    _capabilities.clear_capability_cache()
+    calls = []
+
+    def fake_native(*, engine, format):
+        calls.append(("native", engine, format))
+        return easydot.BackendCapability("native", True)
+
+    def fail_wasm(*, engine, format):
+        raise AssertionError("WASM should not be probed when native is available")
+
+    monkeypatch.setattr(_capabilities, "_native_capability", fake_native)
+    monkeypatch.setattr(_capabilities, "_wasm_capability", fail_wasm)
+
+    selected, capabilities = _capabilities.select_static_backend(
+        engine="dot",
+        format="svg",
+        refresh=True,
+    )
+
+    assert selected == "native"
+    assert calls == [("native", "dot", "svg")]
+    assert capabilities.keys() == {"native"}
+
+
+def test_static_capabilities_are_format_aware(monkeypatch):
+    _capabilities.clear_capability_cache()
+    calls = []
+
+    def fake_native(*, engine, format):
+        calls.append(("native", format))
+        return easydot.BackendCapability("native", False, "missing")
+
+    def fake_wasm(*, engine, format):
+        calls.append(("wasm", format))
+        return easydot.BackendCapability("wasm", True)
+
+    monkeypatch.setattr(_capabilities, "_native_capability", fake_native)
+    monkeypatch.setattr(_capabilities, "_wasm_capability", fake_wasm)
+
+    result = easydot.static_capabilities(format="png", refresh=True)
+
+    assert calls == [("native", "png"), ("wasm", "png")]
+    assert result["wasm"].available is True
+
+
+def test_plot_does_not_retry_after_selected_backend_fails(monkeypatch):
+    monkeypatch.setattr(
+        easydot,
+        "_select_static_backend",
+        lambda **kwargs: (
+            "native",
+            {
+                "wasm": easydot.BackendCapability("wasm", True),
+                "native": easydot.BackendCapability("native", True),
+            },
+        ),
+    )
+    wasm_calls = []
+
+    def fail_native(*args, **kwargs):
+        raise RuntimeError("invalid DOT")
+
+    def render_wasm(*args, **kwargs):
+        wasm_calls.append(True)
+        return "<svg />"
+
+    monkeypatch.setattr(easydot._native_module, "native", fail_native)
+    monkeypatch.setattr(easydot._wasm_module, "render", render_wasm)
+
+    with pytest.raises(RuntimeError, match="invalid DOT"):
+        easydot.plot("digraph {", backend="auto")
+
+    assert wasm_calls == []
+
+
+def test_plot_does_not_use_browser_backend():
+    with pytest.raises(ValueError, match="requires a synchronous backend"):
+        easydot.plot("digraph { A -> B }", backend="browser")
+
+
+def test_plot_rejects_unsupported_format():
+    with pytest.raises(ValueError, match="format must be one of"):
+        easydot.plot("digraph { A -> B }", format="pdf", backend="wasm")
+
+
+def test_static_image_validates_public_invariants():
+    with pytest.raises(ValueError, match="format must be one of"):
+        easydot.StaticImage("digraph { A -> B }", "<svg />", format="pdf", backend="wasm")
+    with pytest.raises(TypeError, match="data must be bytes"):
+        easydot.StaticImage("digraph { A -> B }", "not-png", format="png", backend="wasm")
+    with pytest.raises(ValueError, match="backend must be 'wasm' or 'native'"):
+        easydot.StaticImage("digraph { A -> B }", "<svg />", format="svg", backend="browser")
+
+
 def test_to_string_emits_deprecation_warning():
     with pytest.warns(DeprecationWarning, match="to_string.*deprecated"):
         easydot.to_string("digraph { A -> B }", backend="wasm")

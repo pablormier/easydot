@@ -78,6 +78,7 @@ easydot.render("digraph { A -> B -> C }", fit="both", scale=1.5)
 easydot.svg("digraph { A -> B -> C }")                       # SVG string (wasm/native)
 easydot.html("digraph { A -> B -> C }", fit="horizontal")    # display-ready HTML
 easydot.native("digraph { A -> B -> C }", format="png")      # PNG bytes
+easydot.plot("digraph { A -> B -> C }")                       # static SVG display
 ```
 
 ### Backend guide
@@ -95,6 +96,9 @@ caps = easydot.capabilities()
 caps["browser"].available   # True if local or CDN browser assets are reachable
 caps["wasm"].available      # True if wasi-graphviz can render a probe graph
 caps["native"].available    # True if native dot can render a probe graph
+
+# Format-aware synchronous backends for plot()
+easydot.static_capabilities(format="png")
 ```
 
 `backend="auto"` uses these probes and chooses `native`, then `wasm`, then
@@ -123,6 +127,27 @@ easydot.render("digraph { A -> B -> C }", backend="wasm", fit="horizontal")
 # Display-ready HTML with fit/scale
 html = easydot.html("digraph { A -> B -> C }", backend="wasm", fit="both")
 ```
+
+### Static notebook plots
+
+Use `plot()` when the notebook output must be produced synchronously and
+embedded as a self-contained image, including notebooks executed with
+Papermill. It prefers native Graphviz and falls back to the Python WASM
+backend; it never uses the asynchronous browser backend.
+
+```python
+import easydot
+
+# SVG is the default and remains sharp when displayed in a notebook.
+easydot.plot("digraph { A -> B -> C }")
+
+# Request a raster image when a PNG-capable backend is available, typically native Graphviz.
+easydot.plot("digraph { A -> B -> C }", format="png")
+```
+
+PNG support depends on the selected Graphviz build. If neither native
+Graphviz nor the Python WASM build supports raster output, `plot(format="png")`
+fails clearly; use the default SVG output in that environment.
 
 ### Native Graphviz
 

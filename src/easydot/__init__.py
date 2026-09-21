@@ -12,6 +12,8 @@ from easydot._capabilities import (
     available_backends,
     capabilities,
     clear_capability_cache,
+    select_static_backend as _select_static_backend,
+    static_capabilities,
 )
 from easydot._version import UPSTREAM_PACKAGE, UPSTREAM_VERSION
 from easydot._html import (
@@ -37,6 +39,8 @@ _STATIC_BACKENDS = ("wasm", "native")
 _BROWSER_ONLY_KWARGS = ("worker", "spinner", "source", "iframe_mode")
 
 _DEFAULT_VIEWPORT_FIT_HEIGHT = "400px"
+_STATIC_IMAGE_FORMATS = ("svg", "png")
+_STATIC_IMAGE_MIME_TYPES = {"svg": "image/svg+xml", "png": "image/png"}
 
 
 def _backend_error() -> str:
@@ -460,6 +464,150 @@ class Graph:
         return self.dot
 
 
+class StaticImage:
+    """Synchronous static Graphviz output for rich notebook display."""
+
+    def __init__(
+        self,
+        dot: str | DotSource,
+        data: str | bytes,
+        *,
+        format: str,
+        backend: str,
+    ) -> None:
+        if format not in _STATIC_IMAGE_FORMATS:
+            raise ValueError(
+                f"format must be one of {_STATIC_IMAGE_FORMATS!r}; got {format!r}"
+            )
+        expected_type = str if format == "svg" else bytes
+        if not isinstance(data, expected_type):
+            raise TypeError(
+                f"data must be {expected_type.__name__} for format={format!r}; "
+                f"got {type(data).__name__}"
+            )
+        if backend not in _STATIC_BACKENDS:
+            raise ValueError(
+                f"backend must be 'wasm' or 'native'; got {backend!r}"
+            )
+        self.dot = _dot_text(dot)
+        self.data = data
+        self.format = format
+        self.backend = backend
+
+    @property
+    def mime_type(self) -> str:
+        return _STATIC_IMAGE_MIME_TYPES[self.format]
+
+    def _mime_(self) -> tuple[str, str | bytes]:
+        return self.mime_type, self.data
+
+    def _repr_mimebundle_(self, include=None, exclude=None) -> dict[str, str | bytes]:
+        return {self.mime_type: self.data}
+
+    def _repr_png_(self) -> bytes | None:
+        if self.format != "png":
+            return None
+        assert isinstance(self.data, bytes)
+        return self.data
+
+    def _repr_svg_(self) -> str | None:
+        if self.format != "svg":
+            return None
+        assert isinstance(self.data, str)
+        return self.data
+
+    def __repr__(self) -> str:
+        return self.dot
+
+
+def _select_plot_backend(*, backend: str, format: str, engine: str, refresh: bool) -> str:
+    if backend == "auto":
+        selected, probed = _select_static_backend(
+            engine=engine,
+            format=format,
+            refresh=refresh,
+        )
+        if selected is not None:
+            return selected
+        reasons = {
+            name: capability.reason or "unavailable"
+            for name, capability in probed.items()
+        }
+        raise RuntimeError(
+            f"no static backend is available for format={format!r}: {reasons}"
+        )
+    if backend in ("native", "wasm"):
+        return backend
+    if backend == "browser":
+        raise ValueError(
+            "plot() requires a synchronous backend; use backend='native', "
+            "backend='wasm', or backend='auto'"
+        )
+    raise ValueError(f"backend must be 'auto', 'wasm', or 'native'; got {backend!r}")
+
+
+def plot(
+    dot: str | DotSource,
+    *,
+    format: str = "svg",
+    backend: str = "auto",
+    engine: str = "dot",
+    refresh_capabilities: bool = False,
+) -> StaticImage:
+    """Render a DOT graph synchronously as a static notebook image.
+
+    ``backend="auto"`` prefers native Graphviz and falls back to the Python
+    WASM backend. The browser backend is intentionally excluded because its
+    output is asynchronous and cannot be captured reliably by Papermill.
+
+    Parameters
+    ----------
+    dot:
+        A DOT source string or an object with a ``to_string()`` method.
+    format:
+        Static image format: ``"svg"`` (default) or ``"png"``.
+    backend:
+        ``"auto"`` (default), ``"native"``, or ``"wasm"``.
+    engine:
+        Graphviz layout engine (e.g. ``dot``, ``neato``, ``circo``).
+    refresh_capabilities:
+        Re-run the synchronous backend probes before selecting ``auto``.
+
+    Returns
+    -------
+    StaticImage
+        A rich display object exposing ``image/svg+xml`` or ``image/png``.
+    """
+    if format not in _STATIC_IMAGE_FORMATS:
+        raise ValueError(
+            f"format must be one of {_STATIC_IMAGE_FORMATS!r}; got {format!r}"
+        )
+
+    dot_text = _dot_text(dot)
+    resolved_backend = _select_plot_backend(
+        backend=backend,
+        format=format,
+        engine=engine,
+        refresh=refresh_capabilities,
+    )
+    if resolved_backend == "native":
+        data = _native_module.native(dot_text, engine=engine, format=format)
+    else:
+        data = _wasm_module.render(dot_text, format=format, engine=engine)
+
+    expected_type = str if format == "svg" else bytes
+    if not isinstance(data, expected_type):
+        raise RuntimeError(
+            f"static backend returned {type(data).__name__} for format={format!r}"
+        )
+    return StaticImage(
+        dot_text,
+        data,
+        format=format,
+        backend=resolved_backend,
+    )
+
+
 def render(
     dot: str | DotSource,
     *,
@@ -622,6 +770,7 @@ def display_native_svg(dot: str | DotSource, *, engine: str = "dot") -> "NativeS
 
 __all__ = [
     "Graph",
+    "StaticImage",
     "BackendCapability",
     "UPSTREAM_PACKAGE",
     "UPSTREAM_VERSION",
@@ -634,8 +783,10 @@ __all__ = [
     "html",
     "native",
     "native_svg",
+    "plot",
     "render",
     "shutdown_server",
+    "static_capabilities",
     "svg",
     "to_string",
     # deprecated
