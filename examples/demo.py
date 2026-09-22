@@ -546,5 +546,29 @@ def _(easydot, mo, source_dot):
     return
 
 
+@app.cell
+def _(easydot, mo):
+    theme = easydot.Theme(
+        graph={"rankdir": "LR", "bgcolor": "transparent"},
+        node={
+            "shape": "box",
+            "style": "rounded,filled",
+            "fillcolor": "#eef2ff",
+            "color": "#4f46e5",
+            "fontname": "Helvetica",
+        },
+        edge={"color": "#64748b", "arrowsize": 0.7},
+    )
+    theme_dot = "digraph { EGF -> EGFR -> RAS -> RAF -> MEK -> ERK -> MYC }"
+    mo.vstack(
+        [
+            mo.md("## 13. Reusable Graphviz themes"),
+            mo.md("Pass a `Theme` to `render()` to apply graph, node, and edge defaults."),
+            easydot.render(theme_dot, theme=theme, fit=True),
+        ]
+    )
+    return
+
+
 if __name__ == "__main__":
     app.run()
