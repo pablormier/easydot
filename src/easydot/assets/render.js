@@ -14,7 +14,106 @@
   const nextFrame = () => new Promise((resolve) => requestAnimationFrame(resolve));
   const showSpinner = __EASYDOT_SHOW_SPINNER__;
   const workerMode = __EASYDOT_WORKER_MODE__;
+  const glyphs = __EASYDOT_GLYPHS__;
   const stopIcon = __EASYDOT_STOP_ICON__;
+  const composeSvgGlyphs = (source, glyphAssets) => {
+    if (!Object.keys(glyphAssets).length) {
+      return source;
+    }
+    const document = new DOMParser().parseFromString(source, "image/svg+xml");
+    if (document.querySelector("parsererror")) {
+      throw new Error("Graphviz returned invalid SVG");
+    }
+    const svgNamespace = "http://www.w3.org/2000/svg";
+    const xlinkNamespace = "http://www.w3.org/1999/xlink";
+    const numberPattern = /[-+]?(?:\d*\.\d+|\d+\.?\d*)(?:[eE][-+]?\d+)?/g;
+    for (const [nodeId, href] of Object.entries(glyphAssets)) {
+      const nodes = Array.from(document.getElementsByTagName("g")).filter(
+        (element) =>
+          element.getAttribute("id") === nodeId &&
+          element.getAttribute("class")?.split(/\s+/).includes("node"),
+      );
+      if (!nodes.length) {
+        throw new Error(`No Graphviz node with id ${JSON.stringify(nodeId)} was found`);
+      }
+      if (nodes.length > 1) {
+        throw new Error(`Multiple Graphviz nodes have id ${JSON.stringify(nodeId)}`);
+      }
+      const node = nodes[0];
+      const shape = Array.from(node.children).find(
+        (element) => element.localName === "ellipse" || element.localName === "polygon",
+      );
+      if (!shape) {
+        throw new Error(
+          `Unsupported proxy geometry for node id ${JSON.stringify(nodeId)}; use shape=ellipse or shape=box`,
+        );
+      }
+      let x;
+      let y;
+      let width;
+      let height;
+      if (shape.localName === "ellipse") {
+        const cx = Number(shape.getAttribute("cx"));
+        const cy = Number(shape.getAttribute("cy"));
+        const rx = Number(shape.getAttribute("rx"));
+        const ry = Number(shape.getAttribute("ry"));
+        if (![cx, cy, rx, ry].every(Number.isFinite) || rx <= 0 || ry <= 0) {
+          throw new Error(`Unsupported proxy geometry for node id ${JSON.stringify(nodeId)}`);
+        }
+        [x, y, width, height] = [cx - rx, cy - ry, rx * 2, ry * 2];
+      } else {
+        const values = (shape.getAttribute("points").match(numberPattern) || []).map(Number);
+        if (values.length < 8 || values.length % 2) {
+          throw new Error(
+            `Unsupported proxy geometry for node id ${JSON.stringify(nodeId)}; expected a rectangular box`,
+          );
+        }
+        const points = [];
+        for (let index = 0; index < values.length; index += 2) {
+          points.push([values[index], values[index + 1]]);
+        }
+        const first = points[0];
+        const last = points[points.length - 1];
+        if (first[0] === last[0] && first[1] === last[1]) {
+          points.pop();
+        }
+        const unique = new Map(points.map((point) => [`${point[0]},${point[1]}`, point]));
+        const vertices = Array.from(unique.values());
+        const xs = vertices.map((point) => point[0]);
+        const ys = vertices.map((point) => point[1]);
+        x = Math.min(...xs);
+        y = Math.min(...ys);
+        width = Math.max(...xs) - x;
+        height = Math.max(...ys) - y;
+        const corners = new Set([
+          `${x},${y}`,
+          `${x},${y + height}`,
+          `${x + width},${y}`,
+          `${x + width},${y + height}`,
+        ]);
+        const rectangle =
+          vertices.length === 4 &&
+          width > 0 &&
+          height > 0 &&
+          vertices.every((point) => corners.has(`${point[0]},${point[1]}`));
+        if (!rectangle) {
+          throw new Error(
+            `Unsupported proxy geometry for node id ${JSON.stringify(nodeId)}; expected a rectangular box`,
+          );
+        }
+      }
+      const image = document.createElementNS(svgNamespace, "image");
+      image.setAttribute("x", String(x));
+      image.setAttribute("y", String(y));
+      image.setAttribute("width", String(width));
+      image.setAttribute("height", String(height));
+      image.setAttribute("preserveAspectRatio", "none");
+      image.setAttribute("href", href);
+      image.setAttributeNS(xlinkNamespace, "xlink:href", href);
+      shape.after(image);
+    }
+    return new XMLSerializer().serializeToString(document.documentElement);
+  };
   const statusMarkup = (message, cancellable = false) =>
     `<div class="easydot-status" data-easydot-status>${
       showSpinner ? '<span class="easydot-spinner" aria-hidden="true"></span>' : ""
@@ -205,10 +304,11 @@
         );
       }
     };
-    const svg = await renderDot();
+    let svg = await renderDot();
     if (signal.aborted) {
       return;
     }
+    svg = composeSvgGlyphs(svg, glyphs);
     removeStatus();
     __EASYDOT_SVG_INSTALL_JS__
 

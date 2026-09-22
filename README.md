@@ -21,6 +21,101 @@ import easydot
 easydot.render("digraph { A -> B -> C }")
 ```
 
+### Themes
+
+`Theme` supplies Graphviz defaults for a graph, its nodes, and its edges. The
+theme statements are inserted immediately inside the root graph, so normal
+Graphviz source-order rules apply: later DOT default statements affect elements
+created after them, and explicit per-element attributes win for those elements.
+Themes do not retroactively restyle earlier DOT statements.
+
+```python
+from easydot import Theme
+
+theme = Theme(
+    graph={"rankdir": "LR", "bgcolor": "transparent"},
+    node={"shape": "box", "style": "rounded,filled", "fillcolor": "#eef2ff"},
+    edge={"color": "#64748b", "arrowsize": 0.7},
+)
+
+dot = "digraph { A -> B -> C }"
+easydot.plot(dot, theme=theme)
+
+# Inspect or pass the prepared DOT to another Graphviz tool.
+styled_dot = theme.apply(dot)
+```
+
+Themes can be extended without modifying the original:
+
+```python
+publication = theme.extend(node={"fontname": "Helvetica", "fontsize": 10})
+```
+
+Themes can also expose generic named styles for callers that build individual
+nodes or edges programmatically. A named lookup returns only that style (plus
+any overrides); the global `node` and `edge` mappings remain fallback defaults
+applied by `theme=`.
+
+```python
+biology = theme.extend(
+    nodes={"gene": {"shape": "box", "fillcolor": "#dbeafe"}},
+    edges={"activation": {"color": "#15803d", "arrowhead": "normal"}},
+)
+
+gene_attrs = biology.node_attrs("gene", label="TP53")
+edge_attrs = biology.edge_attrs("activation")
+```
+
+Named styles can be expanded explicitly by callers without requiring `pydot`.
+For example, with optional `pydot` installed, a caller can use a named style
+while building a graph:
+
+```python
+# Optional dependency: pip install pydot
+import pydot
+
+graph = pydot.Dot(graph_type="digraph")
+graph.add_node(pydot.Node("TP53", **biology.node_attrs("gene")))
+easydot.plot(graph, theme=biology)
+```
+
+### Preset vocabularies
+
+The optional `easydot.themes` module provides small, ordinary `Theme`
+instances for common research diagrams:
+
+- `biology.nodes`: `gene`, `rna`, `protein`, `transcription_factor`
+- `biology.edges`: `interaction`, `activation`, `inhibition`
+- `signaling` adds `receptor`, `complex`, `small_molecule`, `phenotype`, and
+  `phosphorylation`
+- `gene_regulation` adds `promoter` and `transcription`
+
+The specialized presets inherit the global defaults and all styles from
+`biology`:
+
+```python
+from easydot.themes import biology, gene_regulation, signaling
+
+graph.add_node(pydot.Node("EGFR", **signaling.node_attrs("receptor")))
+graph.add_edge(pydot.Edge("TP53", "EGFR", **signaling.edge_attrs("activation")))
+easydot.plot(graph, theme=signaling)
+```
+
+Presets are data, so domain-specific builders can extend them directly:
+
+```python
+metabolism = biology.extend(
+    nodes={"metabolite": {"shape": "circle", "fillcolor": "#E0F2FE"}},
+    edges={"conversion": {"arrowhead": "normal"}},
+)
+```
+
+Named style attributes are materialized when a concrete node or edge is built;
+`theme=` supplies only the graph/node/edge defaults and does not infer roles
+from DOT. If a preset or renderer theme changes, rebuild programmatically
+constructed elements to update their named-style appearance. Explicit DOT
+attributes still win according to normal Graphviz source-order rules.
+
 ## Example
 
 <img src="assets/example.png" alt="easydot example" width="800px">
@@ -80,6 +175,31 @@ easydot.html("digraph { A -> B -> C }", fit="horizontal")    # display-ready HTM
 easydot.native("digraph { A -> B -> C }", format="png")      # PNG bytes
 easydot.plot("digraph { A -> B -> C }")                       # static SVG display
 ```
+
+### SVG glyphs
+
+`SvgGlyph` lets you draw a node with your own self-contained SVG while Graphviz
+still lays out the graph and clips edges to a built-in ellipse or rectangular
+box. Give the proxy node an explicit DOT `id`; easydot overlays the glyph on
+that proxy in the final SVG.
+
+```python
+from easydot import SvgGlyph
+
+dot = '''digraph {
+  cell [id="cell-glyph", shape=ellipse, fixedsize=true,
+        width=1.7, height=1.2, label="", color=transparent]
+  cell -> next
+}'''
+glyphs = {"cell-glyph": SvgGlyph.from_file("cell.svg")}
+
+easydot.render(dot, glyphs=glyphs)  # works with browser, WASM, and native SVG
+```
+
+The glyph is stretched to the proxy's bounds, so design its SVG canvas to match
+the proxy aspect ratio. Edges connect to the ellipse or box boundary, not to an
+arbitrary outline inside the artwork. Custom glyphs currently require SVG
+output; `plot(..., format="png", glyphs=...)` is unsupported.
 
 ### Backend guide
 

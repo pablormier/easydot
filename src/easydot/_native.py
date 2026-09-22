@@ -3,13 +3,23 @@
 from __future__ import annotations
 
 import subprocess
+from typing import TYPE_CHECKING
 
-from easydot._html import DotSource, _dot_text
+from easydot._source import DotSource, _prepare_dot
+
+if TYPE_CHECKING:
+    from easydot._theme import Theme
 
 _TEXT_FORMATS = frozenset({"svg", "dot", "plain", "json", "xdot", "xdot1.2", "xdot1.4", "ps", "eps"})
 
 
-def native(dot: str | DotSource, *, engine: str = "dot", format: str = "svg") -> str | bytes:
+def native(
+    dot: str | DotSource,
+    *,
+    engine: str = "dot",
+    format: str = "svg",
+    theme: Theme | None = None,
+) -> str | bytes:
     """Render a DOT graph using a native Graphviz executable.
 
     Parameters
@@ -21,6 +31,8 @@ def native(dot: str | DotSource, *, engine: str = "dot", format: str = "svg") ->
     format:
         Graphviz output format (e.g. ``svg``, ``png``, ``pdf``).
         Text formats are returned as ``str``; binary formats as ``bytes``.
+    theme:
+        Optional :class:`easydot.Theme` providing Graphviz defaults.
 
     Returns
     -------
@@ -33,7 +45,7 @@ def native(dot: str | DotSource, *, engine: str = "dot", format: str = "svg") ->
     RuntimeError
         If the native Graphviz executable is unavailable or rendering fails.
     """
-    dot_text = _dot_text(dot)
+    dot_text = _prepare_dot(dot, theme)
     try:
         result = subprocess.run(
             [engine, f"-T{format}"],
@@ -58,8 +70,10 @@ def native(dot: str | DotSource, *, engine: str = "dot", format: str = "svg") ->
     return result.stdout
 
 
-def native_svg(dot: str | DotSource, *, engine: str = "dot") -> str:
+def native_svg(
+    dot: str | DotSource, *, engine: str = "dot", theme: Theme | None = None
+) -> str:
     """Render a DOT graph to an SVG string using native Graphviz."""
-    result = native(dot, engine=engine, format="svg")
+    result = native(dot, engine=engine, format="svg", theme=theme)
     assert isinstance(result, str)
     return result

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from easydot._html import DotSource, _dot_text
+from easydot._source import DotSource, _dot_text
 
 
 def render(

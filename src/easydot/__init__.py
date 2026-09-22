@@ -5,6 +5,7 @@ from __future__ import annotations
 import html as html_lib
 import sys
 import warnings
+from collections.abc import Mapping
 from importlib.metadata import version as _distribution_version
 
 from easydot._capabilities import (
@@ -26,6 +27,9 @@ from easydot._html import (
     _in_marimo_runtime,
     html as _browser_html,
 )
+from easydot._source import _prepare_dot
+from easydot._glyphs import SvgGlyph, compose_svg_glyphs, normalize_glyphs
+from easydot._theme import Theme
 import easydot._native as _native_module
 import easydot._wasm as _wasm_module
 from easydot._native import native, native_svg
@@ -131,7 +135,15 @@ def _select_svg_auto_backend(kwargs: dict[str, object]) -> str:
     )
 
 
-def svg(dot: str | DotSource, *, backend: str = "auto", engine: str = "dot", **kwargs) -> str:
+def svg(
+    dot: str | DotSource,
+    *,
+    backend: str = "auto",
+    engine: str = "dot",
+    theme: Theme | None = None,
+    glyphs: Mapping[str, SvgGlyph] | None = None,
+    **kwargs,
+) -> str:
     """Render a DOT graph to a raw SVG string.
 
     Only the ``wasm`` and ``native`` backends can produce SVG synchronously.
@@ -147,12 +159,20 @@ def svg(dot: str | DotSource, *, backend: str = "auto", engine: str = "dot", **k
         ``"auto"`` (default), ``"wasm"``, or ``"native"``. ``"browser"`` raises.
     engine:
         Graphviz layout engine (e.g. ``dot``, ``neato``, ``circo``).
+    theme:
+        Optional :class:`Theme` providing Graphviz defaults. Attributes already
+        present in the DOT source take precedence.
+    glyphs:
+        Mapping from explicit DOT node ``id`` values to :class:`SvgGlyph`
+        assets. Nodes must use an ellipse or rectangular box proxy shape.
 
     Returns
     -------
     str
         Raw SVG string.
     """
+    prepared_dot = _prepare_dot(dot, theme)
+    glyph_map = normalize_glyphs(glyphs)
     if backend == "browser":
         raise ValueError(
             "backend='browser' renders in the browser at view-time and cannot produce "
@@ -162,11 +182,12 @@ def svg(dot: str | DotSource, *, backend: str = "auto", engine: str = "dot", **k
     if backend == "auto":
         backend = _select_svg_auto_backend(kwargs)
     if backend == "wasm":
-        return _wasm_module.svg(dot, engine=engine)
+        result = _wasm_module.svg(prepared_dot, engine=engine)
+        return compose_svg_glyphs(result, glyph_map)
     if backend == "native":
-        result = _native_module.native(dot, engine=engine, format="svg")
+        result = _native_module.native(prepared_dot, engine=engine, format="svg")
         assert isinstance(result, str)
-        return result
+        return compose_svg_glyphs(result, glyph_map)
     raise ValueError(f"{_backend_error()}; got {backend!r}")
 
 
@@ -178,6 +199,8 @@ def html(
     fit: bool | str = False,
     scale: float = 1.0,
     toolbar: bool = True,
+    theme: Theme | None = None,
+    glyphs: Mapping[str, SvgGlyph] | None = None,
     # Browser-only options
     source: str = "auto",
     spinner: bool = True,
@@ -215,6 +238,12 @@ def html(
         Scale factor applied to the SVG natural size.
     toolbar:
         Whether to include copy/download toolbar buttons.
+    theme:
+        Optional :class:`Theme` providing Graphviz defaults. Attributes already
+        present in the DOT source take precedence.
+    glyphs:
+        Mapping from explicit DOT node ``id`` values to :class:`SvgGlyph`
+        assets. Custom glyphs require SVG output.
     source:
         Browser-only. Asset source: ``"auto"``, ``"local"``, or ``"cdn"``.
     spinner:
@@ -222,6 +251,8 @@ def html(
     worker:
         Browser-only. Web Worker mode: ``False``, ``True``, or ``"auto"``.
     """
+    prepared_dot = _prepare_dot(dot, theme)
+    glyph_map = normalize_glyphs(glyphs)
     if backend == "auto":
         _kwargs = dict(
             engine=engine,
@@ -237,7 +268,7 @@ def html(
 
     if backend == "browser":
         return _browser_html(
-            dot,
+            prepared_dot,
             engine=engine,
             container_id=container_id,
             source=source,
@@ -246,11 +277,14 @@ def html(
             spinner=spinner,
             toolbar=toolbar,
             worker=worker,
+            glyphs=glyph_map,
         )
 
     if backend in _STATIC_BACKENDS:
         _reject_browser_only_kwargs(backend, source=source, spinner=spinner, worker=worker)
-        raw_svg = _get_static_svg(dot, backend=backend, engine=engine)
+        raw_svg = _get_static_svg(
+            prepared_dot, backend=backend, engine=engine, glyphs=glyph_map
+        )
         return wrap_static_html(
             raw_svg,
             fit=fit_mode,
@@ -277,13 +311,20 @@ def _reject_browser_only_kwargs(
         raise TypeError(f"spinner is only supported by backend='browser'; got backend={backend!r}")
 
 
-def _get_static_svg(dot: str | DotSource, *, backend: str, engine: str) -> str:
+def _get_static_svg(
+    dot: str | DotSource,
+    *,
+    backend: str,
+    engine: str,
+    glyphs: Mapping[str, SvgGlyph] | None = None,
+) -> str:
+    glyph_map = normalize_glyphs(glyphs)
     if backend == "wasm":
-        return _wasm_module.svg(dot, engine=engine)
+        return compose_svg_glyphs(_wasm_module.svg(dot, engine=engine), glyph_map)
     if backend == "native":
         result = _native_module.native(dot, engine=engine, format="svg")
         assert isinstance(result, str)
-        return result
+        return compose_svg_glyphs(result, glyph_map)
     raise ValueError(f"{_backend_error()}; got {backend!r}")
 
 
@@ -303,14 +344,18 @@ class Graph:
         fit: bool | str = False,
         scale: float = 1.0,
         toolbar: bool = True,
+        theme: Theme | None = None,
         iframe: bool = True,
         iframe_height: str | None = None,
         iframe_mode: str | None = None,
         spinner: bool = True,
         worker: bool | str = False,
         source: str = "auto",
+        glyphs: Mapping[str, SvgGlyph] | None = None,
     ) -> None:
         self.dot = _dot_text(dot)
+        self.theme = theme
+        self._effective_dot = _prepare_dot(self.dot, theme)
         self.backend = backend
         self.engine = engine
         self.fit = fit
@@ -324,6 +369,7 @@ class Graph:
         self.spinner = spinner
         self.worker = worker
         self.source = source
+        self.glyphs = normalize_glyphs(glyphs)
         self._resolved_backend: str | None = None
         self._svg_cache: str | None = None
 
@@ -342,7 +388,7 @@ class Graph:
 
     def _body_html(self) -> str:
         return html(
-            self.dot,
+            self._effective_dot,
             backend=self._resolve_backend(),
             engine=self.engine,
             fit=self.fit,
@@ -351,6 +397,7 @@ class Graph:
             source=self.source,
             spinner=self.spinner,
             worker=self.worker,
+            glyphs=self.glyphs,
         )
 
     def _raw_svg(self) -> str | None:
@@ -358,7 +405,12 @@ class Graph:
         if backend == "browser":
             return None
         if self._svg_cache is None:
-            self._svg_cache = _get_static_svg(self.dot, backend=backend, engine=self.engine)
+            self._svg_cache = _get_static_svg(
+                self._effective_dot,
+                backend=backend,
+                engine=self.engine,
+                glyphs=self.glyphs,
+            )
         return self._svg_cache
 
     # ---------- iframe plumbing (mirrors old DotDisplay logic) ----------
@@ -553,6 +605,8 @@ def plot(
     backend: str = "auto",
     engine: str = "dot",
     refresh_capabilities: bool = False,
+    theme: Theme | None = None,
+    glyphs: Mapping[str, SvgGlyph] | None = None,
 ) -> StaticImage:
     """Render a DOT graph synchronously as a static notebook image.
 
@@ -572,18 +626,25 @@ def plot(
         Graphviz layout engine (e.g. ``dot``, ``neato``, ``circo``).
     refresh_capabilities:
         Re-run the synchronous backend probes before selecting ``auto``.
+    theme:
+        Optional :class:`Theme` providing Graphviz defaults. Attributes already
+        present in the DOT source take precedence.
 
     Returns
     -------
     StaticImage
         A rich display object exposing ``image/svg+xml`` or ``image/png``.
     """
+    glyph_map = normalize_glyphs(glyphs)
+    if glyph_map and format != "svg":
+        raise ValueError("SVG glyphs require format='svg'")
     if format not in _STATIC_IMAGE_FORMATS:
         raise ValueError(
             f"format must be one of {_STATIC_IMAGE_FORMATS!r}; got {format!r}"
         )
 
-    dot_text = _dot_text(dot)
+    original_dot = _dot_text(dot)
+    dot_text = _prepare_dot(original_dot, theme)
     resolved_backend = _select_plot_backend(
         backend=backend,
         format=format,
@@ -595,13 +656,17 @@ def plot(
     else:
         data = _wasm_module.render(dot_text, format=format, engine=engine)
 
+    if glyph_map:
+        assert isinstance(data, str)
+        data = compose_svg_glyphs(data, glyph_map)
+
     expected_type = str if format == "svg" else bytes
     if not isinstance(data, expected_type):
         raise RuntimeError(
             f"static backend returned {type(data).__name__} for format={format!r}"
         )
     return StaticImage(
-        dot_text,
+        original_dot,
         data,
         format=format,
         backend=resolved_backend,
@@ -615,6 +680,7 @@ def render(
     capability_timeout: float = 2.0,
     check_cdn: bool = True,
     refresh_capabilities: bool = False,
+    theme: Theme | None = None,
     **kwargs,
 ) -> "Graph":
     """Return a rich display object for a DOT graph.
@@ -634,10 +700,16 @@ def render(
         Whether to probe the CDN URL when checking browser availability.
     refresh_capabilities:
         Force re-probing even if cached results exist.
+    theme:
+        Optional :class:`Theme` providing Graphviz defaults. Attributes already
+        present in the DOT source take precedence.
+    glyphs:
+        Optional mapping from explicit DOT node ``id`` values to :class:`SvgGlyph`
+        assets. The DOT node must use an ellipse or rectangular box proxy shape.
     **kwargs:
         Forwarded to :class:`Graph` (``engine``, ``fit``, ``scale``,
         ``toolbar``, ``iframe``, ``iframe_height``, ``iframe_mode``,
-        ``spinner``, ``worker``, ``source``).
+        ``spinner``, ``worker``, ``source``, ``glyphs``).
 
     Returns
     -------
@@ -654,7 +726,7 @@ def render(
         kwargs = _kwargs
     elif backend not in ("browser", "wasm", "native"):
         raise ValueError(f"{_backend_error()}; got {backend!r}")
-    return Graph(dot, backend=backend, **kwargs)
+    return Graph(dot, backend=backend, theme=theme, **kwargs)
 
 
 def to_string(dot: str | DotSource, *, backend: str = "auto", **kwargs) -> str:
@@ -748,7 +820,9 @@ def display(
     )
 
 
-def display_svg(dot: str | DotSource, *, engine: str = "dot") -> "SvgDisplay":
+def display_svg(
+    dot: str | DotSource, *, engine: str = "dot"
+) -> "SvgDisplay":
     """Deprecated. Use :func:`render` with ``backend='wasm'`` instead."""
     warnings.warn(
         "easydot.display_svg is deprecated; use easydot.render(..., backend='wasm') instead.",
@@ -758,7 +832,9 @@ def display_svg(dot: str | DotSource, *, engine: str = "dot") -> "SvgDisplay":
     return SvgDisplay(dot, engine=engine)
 
 
-def display_native_svg(dot: str | DotSource, *, engine: str = "dot") -> "NativeSvgDisplay":
+def display_native_svg(
+    dot: str | DotSource, *, engine: str = "dot"
+) -> "NativeSvgDisplay":
     """Deprecated. Use :func:`render` with ``backend='native'`` instead."""
     warnings.warn(
         "easydot.display_native_svg is deprecated; use easydot.render(..., backend='native') instead.",
@@ -769,6 +845,8 @@ def display_native_svg(dot: str | DotSource, *, engine: str = "dot") -> "NativeS
 
 
 __all__ = [
+    "Theme",
+    "SvgGlyph",
     "Graph",
     "StaticImage",
     "BackendCapability",

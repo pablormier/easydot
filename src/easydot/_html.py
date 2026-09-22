@@ -8,12 +8,14 @@ import json
 import os
 import sys
 import uuid
+from collections.abc import Mapping
 from importlib.resources import files
-from typing import Protocol
 
 from easydot._icons import CHECK_ICON, COPY_ICON, DOWNLOAD_ICON, STOP_ICON
 from easydot._version import UPSTREAM_PACKAGE, UPSTREAM_VERSION
 from easydot._server import asset_urls
+from easydot._source import DotSource, _dot_text
+from easydot._glyphs import SvgGlyph, normalize_glyphs
 from easydot._display import (
     body_stylesheet,
     fit_lifecycle_script,
@@ -21,10 +23,6 @@ from easydot._display import (
     normalize_fit,
     toolbar_stylesheet,
 )
-
-
-class DotSource(Protocol):
-    def to_string(self) -> str: ...
 
 
 DEFAULT_CDN_URL = f"https://cdn.jsdelivr.net/npm/{UPSTREAM_PACKAGE}@{UPSTREAM_VERSION}/dist/index.min.js"
@@ -36,18 +34,6 @@ _RENDER_TEMPLATE = files(_ASSET_PACKAGE).joinpath("render.js").read_text(encodin
 
 def _b64_text(value: str) -> str:
     return base64.b64encode(value.encode("utf-8")).decode("ascii")
-
-
-def _dot_text(dot: str | DotSource) -> str:
-    if isinstance(dot, str):
-        return dot
-    to_string = getattr(dot, "to_string", None)
-    if not callable(to_string):
-        raise TypeError("dot must be a DOT string or an object with a to_string() method")
-    value = to_string()
-    if not isinstance(value, str):
-        raise TypeError("dot.to_string() must return a string")
-    return value
 
 
 def _js_literal(value: object) -> str:
@@ -143,6 +129,7 @@ def html(
     spinner: bool = True,
     toolbar: bool = True,
     worker: bool | str = False,
+    glyphs: Mapping[str, SvgGlyph] | None = None,
 ) -> str:
     """Return browser HTML that renders DOT with the bundled Graphviz WASM module.
 
@@ -174,6 +161,7 @@ def html(
         container_id = f"easydot-{uuid.uuid4().hex}"
 
     dot = _dot_text(dot)
+    glyph_map = normalize_glyphs(glyphs)
     fit_mode = normalize_fit(fit)
     worker_mode = _normalize_worker(worker)
     dot_b64 = _b64_text(dot)
@@ -187,6 +175,9 @@ def html(
     js_format = _js_literal(format)
     js_show_spinner = _js_literal(bool(spinner))
     js_worker_mode = _js_literal(worker_mode)
+    js_glyphs = _js_literal(
+        {node_id: glyph._data_uri for node_id, glyph in glyph_map.items()}
+    )
 
     body_style = body_stylesheet(fit_mode)
     layout_style = layout_stylesheet(attr_id)
@@ -270,6 +261,7 @@ def html(
             "SCALE": js_scale,
             "SHOW_SPINNER": js_show_spinner,
             "WORKER_MODE": js_worker_mode,
+            "GLYPHS": js_glyphs,
             "TOOLBAR_SETUP_JS": toolbar_setup_js,
             "STOP_ICON": _js_literal(STOP_ICON),
             "FIT_LIFECYCLE_JS": fit_lifecycle_script(),
